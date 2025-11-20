@@ -1,0 +1,200 @@
+Estou recebendo “Failed to fetch” ao tentar fazer login usando a MASTER_KEY.
+
+Sua tarefa agora é:
+
+🔍 1. Identificar a causa real do “Failed to fetch”
+
+Verifique TUDO que pode causar isso:
+
+✔ Problemas na rota da API:
+
+/api/login inexistente ou com erro interno
+
+Exceptions não tratadas
+
+Resposta sem JSON válido
+
+Retorno vazio ou quebrado
+
+Uso incorreto de Response.json()
+
+Erros de CORS
+
+Erros de cookies
+
+Falha ao setar header "Content-Type": "application/json"
+
+✔ Problemas no frontend:
+
+URL incorreta (/api/login deve ser relativo, não absoluto)
+
+fetch sem body JSON
+
+fetch sem header Content-Type: application/json
+
+fetch usando GET em vez de POST
+
+fetch chamando endpoint errado
+
+✔ Problemas no Vercel:
+
+API está gerando erro 500 silencioso
+
+Cookie não pode ser setado porque está sendo enviado antes do JSON
+
+Função está rodando edge sem suporte a algo
+
+Falta de try/catch em APIs
+
+🔧 2. Corrigir as API Routes para o padrão oficial Vercel 2025
+
+Garanta que:
+
+/api/login
+
+Sempre retorna JSON (sucesso e erro)
+
+Inclui try/catch
+
+Não retorna nada vazio
+
+Seta cookie APÓS gerar o objeto do response
+
+Nunca quebra antes do JSON final
+
+/api/session
+
+Retorna sempre um JSON válido
+
+Lê cookie corretamente
+
+Se cookie inválido → { logged: false }
+
+/api/generate-key, /api/list-keys, /api/delete-key
+
+Corrigir:
+
+falhas de JSON
+
+status codes
+
+exceptions sem catch
+
+retornos vazios
+
+🔐 3. Validar fluxo da MASTER_KEY
+
+A MASTER_KEY fixa é:
+
+MASTER-KEY-48efbfe2b48bcbdd89198058c653c9d2be3150c1ef05e91bd5036c3b641c310a168e64e89f113462994dfe712d99d2fb
+
+
+Verifique:
+
+✔ Lida somente por process.env.MASTER_KEY
+✔ Nunca aparece no frontend
+✔ Comparação correta, sem espaços extras
+✔ Nenhum .trim() removendo caracteres
+✔ Sem problemas de encoding
+
+🍪 4. Verificar Cookies no Vercel
+
+Cookies devem ser criados assim:
+
+res.cookies.set("session", token, {
+  httpOnly: true,
+  secure: true,
+  sameSite: "strict",
+  path: "/",
+  maxAge: 60 * 60 * 24 * 30
+})
+
+
+Corrigir se houver:
+
+retorno antes do cookie
+
+cookie sendo setado após o return
+
+falta de await
+
+sintaxe incorreta
+
+🚫 5. NÃO deletar nada do projeto
+
+Apenas corrigir o que for necessário:
+
+não remover pastas
+
+não remover componentes
+
+não remover API routes
+
+mexer apenas no que causar o erro
+
+📦 6. Entregar no final:
+
+Explicação técnica exata do que causava o “Failed to fetch”
+
+Arquivos corrigidos (login, session, painel, hooks)
+
+Demonstração de teste funcionando
+
+Confirmação de compatibilidade com Vercel
+
+🔥 EXECUTE AGORA.
+✅ PARTE 2 — RESUMO DO CONTEXTO (para IA entender tudo)
+
+Aqui está o resumo perfeito, compacto e correto, do que foi pedido nos últimos prompts:
+
+📌 RESUMO RÁPIDO DO CONTEXTO (para usar antes dos prompts)
+
+O projeto é um sistema de login baseado em MASTER_KEY + chaves de acesso, totalmente rodando no Vercel, com backend feito por Serverless Functions (pasta /api).
+
+Não existe login por e-mail.
+Tudo é baseado em chaves “key-based auth”.
+
+O que já foi feito:
+
+SQL seguro para Supabase 2025
+
+RLS bloqueando acesso direto
+
+Tabela access_keys com hash + salt
+
+MASTER_KEY protegida no backend
+
+Painel admin revisado
+
+Vercel deploy funcionando
+
+Fluxo: login → session → painel admin
+
+Problemas recentes:
+
+“Unexpected end of JSON input”
+
+“Failed to fetch”
+
+MASTER_KEY não autenticando corretamente
+
+API retornando respostas inválidas
+
+Algumas rotas serverless não seguem padrão do Vercel
+
+Cookies possivelmente quebrados
+
+Objetivo:
+
+Corrigir TUDO isso mantendo:
+
+segurança profissional
+
+compatibilidade total com Vercel
+
+sem deletar nada do projeto
+
+apenas corrigir APIs e fluxo de sessão
+
+MASTER_KEY fixa:
+MASTER-KEY-48efbfe2b48bcbdd89198058c653c9d2be3150c1ef05e91bd5036c3b641c310a168e64e89f113462994dfe712d99d2fb

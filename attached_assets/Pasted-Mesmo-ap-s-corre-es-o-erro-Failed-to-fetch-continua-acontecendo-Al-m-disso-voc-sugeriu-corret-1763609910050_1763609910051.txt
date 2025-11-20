@@ -1,0 +1,124 @@
+Mesmo após correções, o erro “Failed to fetch” continua acontecendo.
+Além disso, você sugeriu corretamente que a MASTER_KEY não pode estar hardcoded.
+
+Agora você deve:
+
+✔ 1. Corrigir DEFINITIVAMENTE o erro “Failed to fetch”
+
+Auditar e corrigir:
+
+/api/login
+/api/session
+/api/generate-key
+/api/list-keys
+/api/delete-key
+
+E garantir que TODAS:
+
+✔ sempre retornam JSON válido
+✔ nunca retornam vazio
+✔ nunca interrompem antes de Response.json()
+✔ sempre têm try/catch com erro JSON
+✔ nunca quebram ao setar cookie
+✔ estão usando o padrão Vercel 2025 corretamente
+
+O erro “Failed to fetch” ocorre quando:
+
+a API retorna erro sem JSON
+
+acontece exception sem retorno
+
+cookie é setado depois do response
+
+header inválido
+
+syntax error silencioso
+
+falta de return
+
+content-type está errado
+
+o servidor retorna 500 sem body
+
+VOCÊ DEVE IDENTIFICAR EXATAMENTE qual é o caso e corrigir.
+
+✔ 2. Aplique a sua própria sugestão: Remover MASTER_KEY hardcoded
+
+Atualmente existe algo assim em várias APIs:
+
+const MASTER_KEY_FIXED = "MASTER-KEY-...";
+
+
+VOCÊ DEVE:
+
+❌ remover TODAS as versões hardcoded da MASTER_KEY
+✔ substituir por:
+const masterKey = process.env.MASTER_KEY;
+
+if (!masterKey) {
+  return Response.json({ error: "MASTER_KEY não configurada no servidor" }, { status: 500 });
+}
+
+✔ confirmar que o Vercel está usando MASTER_KEY corretamente
+✔ confirmar que nenhuma string da MASTER_KEY aparece no bundle do cliente
+✔ 3. Validar se o fetch está correto no frontend
+
+Auditar o arquivo responsável por chamar:
+
+fetch("/api/login")
+
+
+Corrigir se necessário:
+
+body ausente
+
+falta de JSON.stringify
+
+header Content-Type errado
+
+método errado (exigir POST)
+
+URL incorreta
+
+✔ 4. Fixar cookies HTTP-only na Vercel
+
+Todas as APIs que criam cookie devem fazer:
+
+const response = Response.json({ ok: true, isAdmin });
+response.cookies.set("session", token, {
+  httpOnly: true,
+  secure: true,
+  sameSite: "strict",
+  path: "/",
+  maxAge: 60 * 60 * 24 * 30
+});
+return response;
+
+
+Corrigir qualquer variante incorreta.
+
+✔ 5. Testar função por função
+
+Depois de arrumar, você deve executar estes testes:
+
+1️⃣ Login com MASTER_KEY → deve retornar JSON válido
+2️⃣ Cookie deve ser criado corretamente
+3️⃣ /api/session deve retornar { logged: true }
+4️⃣ Admin panel deve carregar chaves usando cookie
+5️⃣ /api/generate-key deve funcionar
+6️⃣ /api/list-keys deve funcionar
+7️⃣ /api/delete-key deve funcionar
+8️⃣ Nenhuma API deve retornar body vazio
+9️⃣ Nenhuma API deve retornar erro sem JSON
+
+✔ 6. NÃO remover nada do projeto
+
+Apenas ajustar código necessário.
+
+✔ 7. ENTREGAR NO FINAL:
+🔥 Explicação exata do motivo do “Failed to fetch”
+🔥 Os arquivos corrigidos
+🔥 Confirmação de que todas as funções funcionam no Vercel
+🔥 Confirmação de que a MASTER_KEY agora é somente process.env.MASTER_KEY
+🔥 Teste final demonstrando login funcionando
+🔥 EXECUTE AGORA.

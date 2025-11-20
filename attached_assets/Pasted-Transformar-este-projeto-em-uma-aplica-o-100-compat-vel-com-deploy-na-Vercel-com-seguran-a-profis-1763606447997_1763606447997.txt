@@ -1,0 +1,190 @@
+Transformar este projeto em uma aplicação 100% compatível com deploy na Vercel, com segurança profissional, utilizando Supabase + Vercel Serverless Functions, sem usar servidores persistentes (ex: Express/Node rodando).
+
+NÃO APAGUE NENHUM ARQUIVO EXISTENTE, exceto .md redundantes — e somente se realmente forem inúteis.
+Arquivos importantes .md devem ser preservados.
+
+Você deve:
+
+🟩 1. Manter todo o projeto como está
+
+Não remover pastas
+
+Não deletar arquivos JS/TS, componentes, libs, hooks, utils
+
+Não remover nada que afete a UI
+
+Só pode remover arquivos .md redundantes, e mesmo assim apenas se não forem úteis.
+
+🟩 2. Migrar TODO o backend para Serverless Functions da Vercel
+
+Criar estas rotas dentro de /api:
+
+/api/login
+
+Verifica MASTER_KEY (server-side, nunca no cliente)
+
+Verifica access keys no Supabase (hash + salt)
+
+Cria cookie seguro (HTTP-only, SameSite=Strict, Secure)
+
+Retorna { ok, isAdmin }
+
+/api/session
+
+Lê cookie
+
+Valida
+
+Retorna sessão
+
+/api/generate-key (somente admin)
+
+Cria key aleatória
+
+Gera salt
+
+Gera hash seguro (scrypt/pbkdf2)
+
+Armazena hash + salt
+
+Retorna key apenas 1x
+
+/api/list-keys (somente admin)
+/api/delete-key (somente admin)
+🟩 3. Usar variáveis de ambiente da Vercel (Settings > Environment Variables)
+
+Criar e usar apenas estas:
+
+VITE_SUPABASE_URL
+VITE_SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY     ← sem VITE_
+MASTER_KEY                    ← sem VITE_
+
+
+MASTER_KEY nunca aparece no frontend.
+
+🟩 4. Não usar Express, não usar servidor Replit
+
+Tudo deve ser Vercel Serverless Function:
+
+arquivos em /api/*.js
+
+exportar async function handler(req, res) {} com a sintaxe atual da Vercel
+
+usar cookies() da Next/Vercel para setar cookies
+
+🟩 5. Atualizar o frontend
+
+Remover qualquer lógica de MASTER_KEY no cliente
+
+Criar useAuth() para chamar /api/session
+
+Criar UI de login que chama /api/login
+
+Criar painel admin que usa /api/generate-key, /api/delete-key, /api/list-keys
+
+Proteger rotas (simples: se !isAdmin, esconder opções)
+
+🟩 6. Supabase SQL 2025 — rodar sem erros
+
+Usar como referência:
+
+/mnt/data/SUPABASE_SCHEMA_SECURE_2025.sql
+
+/mnt/data/SUPABASE_SCHEMA.md
+
+/mnt/data/SUPABASE_SCHEMA_KEY_AUTH.md
+
+/mnt/data/ADMIN_SETUP.md
+
+Você deve:
+
+✔ Validar todas as tabelas
+✔ Criar tabela access_keys (com key_hash, salt, label, revoked)
+✔ Criar políticas RLS seguras
+✔ Criar RPCs com SECURITY DEFINER
+✔ Não usar nenhum comando proibido (app.jwt_secret, triggers antigos, etc.)
+
+🟩 7. Proteção Total
+
+Implementar:
+
+Cookies HTTP-only + Secure + SameSite=Strict
+
+API protege MASTER_KEY
+
+Todas as operações sensíveis são pelo backend
+
+Cliente nunca toca Supabase diretamente para chaves
+
+access_keys fica com RLS USING (false)
+
+Apenas RPCs e serverless acessam hash das chaves
+
+🟩 8. Limpeza de .MD
+
+Você pode remover apenas .md que:
+
+duplicam informações
+
+não são mais usados
+
+são logs, rascunhos ou instruções antigas
+
+Deve manter:
+
+Documentação principal
+
+Qualquer arquivo mencionado nos guias que forme parte da segurança
+
+QUALQUER .md que contiver SQL, regras RLS, ou instruções críticas
+
+🟩 9. vercel.json
+
+Criar (ou corrigir) para:
+
+{
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "outputDirectory": "dist",
+  "buildCommand": "npm run build",
+  "framework": "vite"
+}
+
+🟩 10. No final você deve entregar:
+✔ Código completo dos endpoints serverless
+✔ Código atualizado do frontend
+✔ Novo README explicando como deployar na Vercel
+✔ SQL final pronto para colar no Supabase
+✔ Lista dos .md removidos
+✔ Lista dos .md mantidos
+✔ “Checklist final” de vercel environment variables
+✔ Teste final de login + geração de chaves
+🟩 11. NUNCA quebrar o projeto existente
+
+Tudo novo deve ser adicionado, não substituído cegamente.
+
+Você pode:
+
+sobrescrever arquivos que já existem somente se necessário
+
+adicionar novos arquivos
+
+atualizar imports conforme necessário
+
+🟩 12. Entrega Final
+
+Seu output deve conter:
+
+Todos os arquivos novos e atualizados
+
+O SQL final
+
+Diferenças entre antes/depois
+
+Instruções para deploy na Vercel
+
+Sessão de testes funcionando
+
+🔥 ESTE É O PROMPT OFICIAL. EXECUTE AGORA.
+Não remova nada do projeto que não seja EXTREMAMENTE necessário.
+Faça a conversão completa para a Vercel com segurança máxima.

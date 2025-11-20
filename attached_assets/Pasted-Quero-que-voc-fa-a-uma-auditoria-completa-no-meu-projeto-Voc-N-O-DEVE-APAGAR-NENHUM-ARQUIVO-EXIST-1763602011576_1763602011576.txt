@@ -1,0 +1,173 @@
+Quero que você faça uma auditoria completa no meu projeto.
+Você NÃO DEVE APAGAR NENHUM ARQUIVO EXISTENTE.
+Preciso que você execute 3 tarefas obrigatórias e detalhadas abaixo:
+
+✅ TAREFA 1 — Auditoria SQL completa (compatibilidade 2025)
+
+Leia todos os arquivos SQL e Schemas do projeto:
+
+SUPABASE_SCHEMA.md
+
+ADMIN_SETUP.md
+
+Qualquer função RPC
+
+Qualquer comando relacionado a RLS
+
+Qualquer CREATE, INSERT, POLICY, FUNCTION, ALTER, GRANT…
+
+E então:
+
+✔ Corrija tudo que estiver incompatível com o Supabase 2025:
+
+Comandos depreciados
+
+Comandos proibidos (ex: SET app.jwt_secret)
+
+Políticas inválidas
+
+Uso incorreto de auth.uid()
+
+Funções PL/pgSQL inseguras
+
+Constraints incorretas
+
+Qualquer coisa que dê erro no SQL Editor novo
+
+E garantir que tudo roda sem warnings
+
+IMPORTANTE:
+→ Se uma linha SQL for perigosa ou proibida, você deve reescrever a versão correta.
+→ No final, me entregue um único bloco final de SQL corrigido.
+
+✅ TAREFA 2 — Revisão total de segurança (baseado nos problemas detectados pelo arquiteto)
+
+Você deve verificar toda a arquitetura e corrigir:
+
+⚠ 1. MASTER_KEY exposta no frontend
+
+Nenhuma informação sensível pode estar em import.meta.env.VITE_*
+
+Nada secreto pode estar acessível no bundle final
+
+A MASTER_KEY deve ir para um serverless endpoint /api/ da Vercel
+
+Toda validação de admin deve ser movida para backend
+
+⚠ 2. RLS incorreto permitindo criação/deleção via JS
+
+Verifique no Banco de Dados se:
+
+access_keys permite SELECT, INSERT, DELETE apenas para admins reais
+
+Usuário que não é admin não pode manipular chaves
+
+Usuário não-administrador não pode promover-se a admin
+
+O frontend nunca pode alterar dados sensíveis diretamente
+
+Policies devem garantir segurança máxima sem depender da UI
+
+⚠ 3. Autenticação via chave (sem email)
+
+O login por chave deve ser revisado para:
+
+✔ Não expor MASTER_KEY
+✔ Não depender de Supabase Auth
+✔ Validar chaves somente no backend
+✔ Garantir que usuários normais não acessem /admin
+✔ Usar hashing das chaves corretamente
+✔ Usar sal + hashing forte
+✔ Gerar tokens de sessão seguros
+
+⚠ 4. Session Management
+
+Armazenar sessão de forma segura
+
+Não deixar possível virar admin via localStorage
+
+Impedir users de se tornarem admins alterando JS
+
+⚠ 5. Supabase Policies
+
+Você deve reescrever todas as RLS para:
+
+- Apenas admin pode inserir/deletar chaves
+- Usuários comuns só podem acessar seus próprios dados
+- Nenhum usuário pode deletar ou modificar dados de outros
+
+
+Se algo estiver inseguro -> Corrija.
+
+Depois gere as RLS finais e seguras.
+
+✅ TAREFA 3 — Verificar e corrigir o problema da tela totalmente branca
+
+O projeto ficou totalmente branco, então você deve:
+
+✔ Diagnosticar as causas possíveis:
+
+index.html quebrado ou faltando
+
+caminhos dos assets incorretos
+
+CSS não importado mais
+
+Vite não encontra /src/main.jsx
+
+Rotas mal configuradas
+
+Erro fatal no React
+
+Componentes que não renderizam nada
+
+✔ Corrigir:
+
+Restaurar o conteúdo completo do index.html
+
+Garantir que o CSS está sendo importado
+
+Garantir que o main.jsx é encontrado
+
+Corrigir o React Router
+
+Corrigir imports
+
+Garantir que tudo renderiza novamente
+
+IMPORTANTE:
+Você não deve apagar nenhum arquivo, apenas ajustar.
+
+No final, gere:
+
+✔ index.html reconstruído
+✔ Rotas funcionando
+✔ CSS aplicado
+✔ Tela inicial aparecendo corretamente
+⚡ RESULTADO FINAL QUE EU ESPERO ⚡
+
+SQL 100% compatível com Supabase 2025
+
+RLS totalmente segura
+
+MASTER KEY protegida no backend
+
+Login por chave funcionando sem risco
+
+Painel admin seguro
+
+UI renderizando (nada mais branco)
+
+Projeto preservado — nenhum arquivo deletado
+
+Entregar:
+
+SQL final corrigido
+
+Políticas finais
+
+Correções de backend
+
+Correções do frontend
+
+index.html funcional

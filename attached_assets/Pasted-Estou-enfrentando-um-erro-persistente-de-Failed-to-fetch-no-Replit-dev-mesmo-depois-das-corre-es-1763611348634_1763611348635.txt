@@ -1,0 +1,203 @@
+Estou enfrentando um erro persistente de “Failed to fetch” no Replit.dev, mesmo depois das correções anteriores.
+Além disso, quero que você finalize completamente o sistema de Access Key + MASTER_KEY seguindo o fluxo original do projeto.
+
+A seguir está todo o contexto e todas as exigências que você deve atender.
+
+📌 CONTEXT0 COMPLETO DO SISTEMA
+
+O projeto é um sistema baseado somente em chaves:
+
+🔹 1. Usuários comuns
+
+Entram com uma Access Key
+Eles podem ver suas pastas e prompts
+Mas não podem criar novas chaves
+
+🔹 2. Usuário MASTER_KEY
+
+Entra com a MASTER_KEY
+Vê o painel normal igual aos outros
+MAS também vê um botão especial para:
+→ gerar uma nova chave aleatória, única e sem expiração
+→ listar chaves existentes
+→ excluir chaves
+→ copiar chaves
+(Normalmente esse painel fica no ícone “Shield”)
+
+🔹 3. Essa funcionalidade já existe no projeto
+
+Mas está quebrada por causa dos erros na API.
+
+🚨 PROBLEMA ATUAL: “Failed to fetch”
+
+Mesmo com as correções anteriores, ainda ocorre:
+
+“Failed to fetch”
+
+respostas vazias
+
+JSON inválido
+
+login não funciona
+
+MASTER_KEY não autentica
+
+painel admin não abre
+
+cookie não é criado
+
+session não valida
+
+VOCÊ DEVE DEFINIR A CAUSA EXATA E CORRIGIR.
+
+🟩 Tarefas obrigatórias para resolver o problema
+
+Você deve executar TODOS os passos abaixo:
+
+✔ 1. Revisar TODAS as Serverless Functions (Vercel API)
+
+Revisar e corrigir:
+
+/api/login
+
+/api/session
+
+/api/generate-key
+
+/api/list-keys
+
+/api/delete-key
+
+Garantindo que:
+
+✔ sempre retornem JSON válido
+✔ nunca retornem Response vazio
+✔ sempre tenham try/catch
+✔ nunca façam return antes do JSON
+✔ definam cookie ANTES do return
+✔ usem Response.json() (padrão Vercel 2025)
+
+O erro “Failed to fetch” sempre vem de:
+
+JSON vazio
+
+erro interno 500 sem body
+
+cookie inválido jogando exception
+
+return duplo
+
+erro assíncrono não tratado
+
+uso incorreto de Headers e Cookies da Vercel
+
+falta de Content-Type
+
+Encontre o ponto exato e arrume.
+
+✔ 2. Remover MASTER_KEY hardcoded
+
+Procure isto:
+
+const MASTER_KEY_FIXED = "MASTER-KEY-...";
+
+
+Remova e substitua por:
+
+const masterKey = process.env.MASTER_KEY;
+if (!masterKey) {
+  return Response.json({ error: "MASTER_KEY não configurada" }, { status: 500 });
+}
+
+
+E garanta que:
+
+nunca aparece no bundle
+
+nunca aparece no frontend
+
+sempre vem do backend
+
+✔ 3. Verificar o fetch no frontend
+
+Corrigir:
+
+headers
+
+body JSON
+
+método HTTP
+
+URL relativa correta /api/login
+
+treatment de erros
+
+O fetch deve ser:
+
+await fetch("/api/login", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ key })
+});
+
+✔ 4. Validar o cookie da sessão
+
+Criado com httpOnly, secure, sameSite: "strict"
+
+Lido corretamente pela rota /api/session
+
+Deve retornar:
+
+{ "logged": true, "isAdmin": true }
+
+
+para MASTER_KEY
+e:
+
+{ "logged": true, "isAdmin": false }
+
+
+para Access Key normal.
+
+✔ 5. Verificar o painel admin
+
+Depois de corrigir login e session:
+
+botão “Gerar nova chave” deve aparecer apenas para MASTER_KEY
+
+geração de chaves deve funcionar
+
+listagem de chaves deve funcionar
+
+exclusão de chaves deve funcionar
+
+✔ 6. Revisar SQL do Supabase
+
+Garantir:
+
+tabela access_keys correta
+
+colunas hash + salt
+
+RLS bloqueando SELECT direto
+
+funções RPC SECURITY DEFINER funcionando
+
+nada usando comandos proibidos
+
+✔ 7. NÃO REMOVER NADA DO PROJETO
+
+Somente corrigir o necessário.
+
+✔ 8. ENTREGA FINAL OBRIGATÓRIA
+
+Você deve entregar:
+
+🔥 1. Explicação exata do que causava o “Failed to fetch”
+🔥 2. APIs corrigidas (login, session, generate-key, list-keys, delete-key)
+🔥 3. Confirmação que MASTER_KEY funciona
+🔥 4. Confirmação que Access Keys funcionam
+🔥 5. Confirmação que painel admin funciona
+🔥 6. Teste real do fluxo completo
+🔥 7. Garantia de compatibilidade total com Vercel
+🟩 EXECUTE AGORA.

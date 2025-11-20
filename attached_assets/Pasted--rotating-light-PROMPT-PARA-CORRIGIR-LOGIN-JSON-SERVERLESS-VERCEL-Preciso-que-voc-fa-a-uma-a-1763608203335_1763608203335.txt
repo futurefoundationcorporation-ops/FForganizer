@@ -1,0 +1,192 @@
+
+:rotating_light: PROMPT PARA CORRIGIR LOGIN + JSON + SERVERLESS VERCEL
+
+Preciso que você faça uma auditoria completa no fluxo de login do meu projeto e corrija o erro:
+
+Failed to execute 'json' on 'Response': Unexpected end of JSON input
+
+:warning: Regras obrigatórias:
+
+NÃO remover nenhum arquivo do projeto.
+
+NÃO reescrever nada além do necessário.
+
+Corrigir apenas as APIs que estão quebradas.
+
+Modelo final deve funcionar 100% no Vercel.
+
+✔ 1. Verificar todas as funções Serverless da Vercel (api/*)
+
+Revisar:
+
+/api/login
+
+/api/session
+
+/api/generate-key
+
+/api/delete-key
+
+/api/list-keys
+
+E confirmar que TODAS:
+
+retornam JSON válido SEMPRE
+
+nunca retornam Response() sem body
+
+não quebram com erros silenciosos
+
+usam Response.json() (Vercel recomendado)
+
+Exemplo correto:
+
+return Response.json({ error: "Invalid key" }, { status: 401 });
+
+✔ 2. Corrigir o fluxo da MASTER_KEY
+
+Confirmar:
+
+MASTER_KEY é lida SÓ do backend:
+
+process.env.MASTER_KEY
+
+NUNCA usar VITE_MASTER_KEY
+
+Comparação feita no server, nunca no client
+
+Nenhum whitespace quebra a comparação
+
+✔ 3. Corrigir cookies no Vercel
+
+Usar:
+
+import { cookies } from "next/headers";
+
+
+ou (caso seja edge/serverless puro):
+
+res.cookies.set("session", token, {
+  httpOnly: true,
+  secure: true,
+  sameSite: "strict",
+  path: "/",
+  maxAge: 60 * 60 * 24 * 30
+});
+
+
+Confirmar que:
+
+Cookie é setado ANTES de retornar Response.json
+
+Nenhum return “vazio” vem antes do JSON
+
+✔ 4. No final você deve entregar:
+
+Arquivo /api/login corrigido
+
+Arquivo /api/session corrigido
+
+Explicação TÉCNICA do problema
+
+Confirmação de que o fluxo MASTER_KEY → session → painel admin funciona
+
+Teste manual demonstrado
+
+Garantia de compatibilidade total com Vercel
+
+Agora o prompt para incluir a master key fixa e verificar o fluxo completo após login:
+
+:closed_lock_with_key: PROMPT — Incluir MASTER_KEY fixa + revisar tudo após o login
+
+Quero que você atualize o fluxo para usar esta MASTER_KEY fixa (sem alterações):
+
+MASTER-KEY-48efbfe2b48bcbdd89198058c653c9d2be3150c1ef05e91bd5036c3b641c310a168e64e89f113462994dfe712d99d2fb
+
+
+:warning: Ela deve:
+
+ficar somente no backend, dentro de process.env.MASTER_KEY
+
+nunca exposta no cliente
+
+nunca aparecer em HTML, JS do navegador, DevTools, Network etc.
+
+Depois disso, revise TODO o fluxo após login:
+✔ 1. Redirecionamento após login
+
+Quando a MASTER_KEY é aceita:
+
+o servidor deve setar o cookie
+
+o frontend deve receber { ok: true, isAdmin: true }
+
+a página deve navegar automaticamente para o dashboard/admin
+
+Corrigir caso:
+
+a tela fique em loading eterno
+
+não apareça nada
+
+erro de JSON
+
+erro de session
+
+✔ 2. /api/session deve retornar:
+{
+  "logged": true,
+  "isAdmin": true,
+  "sessionId": "xxxx"
+}
+
+
+Se não estiver logado:
+
+{
+  "logged": false
+}
+
+✔ 3. Painel Admin
+
+Depois que o login por MASTER_KEY funcionar:
+
+validar se o painel /admin
+
+consegue realmente carregar
+
+consegue gerar chaves
+
+consegue listar chaves
+
+consegue deletar chaves
+
+NÃO quebra RLS
+
+NENHUMA chamada depende de VITE_ no front
+
+✔ 4. Proteção de rotas
+
+Corrigir:
+
+Usuário sem MASTER_KEY não deve acessar /admin
+
+Chaves normais não são admins
+
+Cookies inválidos → redirect para login
+
+✔ 5. Entregar no final:
+
+Fluxo completo de login corrigido
+
+Implementação final usando a MASTER_KEY fixa
+
+Arquivos /api/login, /api/session, useAuth, painel admin revisados
+
+Teste final comprovado
+
+Explicação clara do que falhava e por que
+
+Confirmação de compatibilidade total com Vercel
+
+:fire: EXECUTE AGORA.

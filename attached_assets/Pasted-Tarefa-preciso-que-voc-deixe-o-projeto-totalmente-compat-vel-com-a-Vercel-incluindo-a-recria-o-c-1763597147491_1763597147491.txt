@@ -1,0 +1,118 @@
+Tarefa: preciso que você deixe o projeto totalmente compatível com a Vercel, incluindo a recriação completa do arquivo vercel.json, configuração das variáveis de ambiente e ajustes necessários para deploy imediato.
+Já estou enviando abaixo as minhas chaves Supabase — você deve integrá-las corretamente.
+
+📌 O QUE VOCÊ DEVE FAZER
+1. Criar um vercel.json 100% compatível com Vite + React
+
+Crie exatamente assim:
+
+{
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite"
+}
+
+
+⚠️ IMPORTANTE:
+NÃO adicione "env": {} dentro do vercel.json.
+As variáveis serão configuradas somente na dashboard da Vercel.
+
+2. Configurar o Supabase usando as chaves abaixo
+
+Aqui estão minhas chaves:
+
+🔹 VITE_SUPABASE_URL
+https://bbdswisceqpeqzjrzrik.supabase.co
+
+🔹 VITE_SUPABASE_ANON_KEY
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJiZHN3aXNjZXFwZXF6anJ6cmlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM1ODk4NzIsImV4cCI6MjA3OTE2NTg3Mn0.pcETfyDQvKEY-qPtOg544ngOqkNxJbScIdyRDlFghWs
+
+🔹 SUPABASE_SERVICE_ROLE_KEY
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJiZHN3aXNjZXFwZXF6anJ6cmlrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MzU4OTg3MiwiZXhwIjoyMDc5MTY1ODcyfQ.zGHglrzYy5atNZYLlo_tYBElnVY85THtHM6_iy-f7cU
+
+Ajustar supabaseClient.js
+import { createClient } from '@supabase/supabase-js';
+
+export const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
+
+Ajustar endpoints /api/*
+
+Use o service_role apenas aqui (backend):
+
+import { createClient } from '@supabase/supabase-js';
+
+export const supabaseAdmin = createClient(
+  process.env.VITE_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+3. Garantir compatibilidade total com Serverless Functions da Vercel
+
+Verificar que /api/* está usando ECMAScript Modules (export default)
+
+Garantir que todas as respostas são JSON válidas
+
+Corrigir imports quebrados
+
+Retirar qualquer referência incorreta do service_role no frontend
+
+4. Validar todo o sistema ADMIN na UI
+
+Validar:
+
+✔ /admin funciona
+✔ useAdmin() detecta corretamente admins
+✔ O botão Shield aparece apenas para admins
+✔ Painel Admin renderiza 100% no ambiente Vercel
+✔ CRUD de access_keys funcionando
+✔ MASTER KEY visível apenas para admins
+✔ Proteção contra usuários normais confirmada
+
+5. Entregar o projeto FINAL, pronto para deploy
+
+Você deve devolver:
+
+vercel.json corrigido
+
+Todas as chaves integradas
+
+Projeto funcionando 100% no modo produção
+
+Endpoints /api funcionando
+
+Compatibilidade total com Vercel
+
+Zero secrets inválidos
+
+Código limpo e organizado
+
+🚀 ME ENTREGUE TAMBÉM
+
+Confirmação de onde inserir as variáveis no Vercel
+(Settings → Environment Variables)
+
+Confirmação de que o build roda com:
+
+npm run build
+
+
+Confirmação de que o deploy vai funcionar sem erros
+
+🔐 MINHAS CHAVES SUPABASE (USE-AS NO PROJETO)
+
+VITE_SUPABASE_URL
+https://bbdswisceqpeqzjrzrik.supabase.co
+
+VITE_SUPABASE_ANON_KEY
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJiZHN3aXNjZXFwZXF6anJ6cmlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM1ODk4NzIsImV4cCI6MjA3OTE2NTg3Mn0.pcETfyDQvKEY-qPtOg544ngOqkNxJbScIdyRDlFghWs
+
+SUPABASE_SERVICE_ROLE_KEY
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJiZHN3aXNjZXFwZXF6anJ6cmlrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MzU4OTg3MiwiZXhwIjoyMDc5MTY1ODcyfQ.zGHglrzYy5atNZYLlo_tYBElnVY85THtHM6_iy-f7cU
+
+Por favor, faça tudo acima e me entregue o projeto completamente compatível com Vercel, pronto para deploy.

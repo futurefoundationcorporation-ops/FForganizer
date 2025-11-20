@@ -1,0 +1,134 @@
+Tarefa: quero que você prepare o projeto completo com o sistema de admin, geração de chaves e painel exclusivo, usando meu Supabase já configurado no vercel.json que enviei.
+O resultado final deve ser um projeto completo, pronto para deploy na Vercel, incluindo uma chave mestra gerada automaticamente e mostrada para mim ao final.
+
+✅ O QUE VOCÊ DEVE ENTREGAR
+
+Quero:
+
+1. Sistema de administrador
+
+Criar a tabela admins no Supabase
+
+Inserir meu user_id como admin
+
+Criar policies para permitir que somente admins acessem a tabela
+
+Criar um hook React useAdmin() que detecta se o usuário logado é admin
+
+2. Sistema de geração e gerenciamento de chaves
+
+Criar:
+
+📌 Tabela
+create table access_keys (
+  id uuid primary key default gen_random_uuid(),
+  key text not null,
+  label text,
+  created_by uuid references auth.users(id),
+  created_at timestamp default now()
+);
+
+📌 Policies:
+
+Permitir apenas admins:
+
+create policy "admins only" on access_keys
+for all
+using (auth.uid() in (select user_id from admins));
+
+📌 UI:
+
+Criar página /admin
+
+Criar componente "Painel Admin"
+
+Criar botão "Gerar nova chave"
+
+Apenas admins devem ver esse botão
+
+Criar listagem de todas as chaves criadas (somente para admin)
+
+Criar botão de copiar chave
+
+📌 Endpoint:
+
+Criar /api/generate-key.js (Vercel + Supabase service_role)
+
+O endpoint deve:
+
+gerar uma chave aleatória segura (crypto.randomUUID() + random bytes)
+
+salvar no Supabase
+
+retornar para mim a chave gerada
+
+3. Chave mestra (root key)
+
+Crie também uma chave mestra, chamada MASTER_KEY, que será:
+
+salva na tabela access_keys com label "master"
+
+retornada para mim no final da execução (somente uma vez)
+
+criada usando alta entropia
+
+Exemplo:
+
+MASTER-KEY-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+4. Integração com meu Supabase
+
+Usar automaticamente as variáveis já presentes no meu vercel.json que eu enviei junto ao projeto.
+
+Seguir esta configuração:
+
+import { createClient } from "@supabase/supabase-js";
+
+export const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
+
+
+E para o endpoint admin:
+
+process.env.SUPABASE_SERVICE_ROLE_KEY
+
+5. Garantir que o projeto entregue esteja pronto para Vercel
+
+build: npm run build
+
+output: dist
+
+sem referências a secrets inexistentes
+
+sem blocos "env" inválidos no vercel.json
+
+🚀 O QUE VOCÊ PRECISA ME ENTREGAR AO FINAL
+
+Todo o projeto funcionando
+
+SQL completo já aplicado
+
+Hook useAdmin()
+
+Página /admin
+
+Botão Gerar Chave
+
+Endpoint /api/generate-key.js
+
+A lista de chaves funcionando
+
+A CHAVE MESTRA (MASTER_KEY) gerada automaticamente
+
+Instruções finais de deploy
+
+⚠️ IMPORTANTE
+
+Você já terá acesso ao arquivo vercel.json contendo minhas credenciais da API Supabase.
+Use esse arquivo para configurar tudo automaticamente.
+
+Por favor, entregue o projeto COMPLETO, totalmente integrado, 100% pronto para deploy.
+E lembre-se: me devolva a MASTER_KEY ao final.
+— END PROMPT —

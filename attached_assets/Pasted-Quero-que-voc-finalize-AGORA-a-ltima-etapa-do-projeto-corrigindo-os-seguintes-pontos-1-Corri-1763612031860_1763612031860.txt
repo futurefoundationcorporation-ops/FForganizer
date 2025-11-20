@@ -1,0 +1,92 @@
+Quero que você finalize AGORA a última etapa do projeto corrigindo os seguintes pontos:
+
+🟩 1. Corrigir o item "Requer Supabase" nas confirmações
+
+Na tabela que você retornou, apareceu:
+
+Access Keys funcionam? ⚠️ Requer Supabase
+
+
+Isso significa que algo ainda está pendente na integração com o Supabase.
+
+Você deve:
+
+✔ identificar exatamente o que está faltando
+✔ completar a configuração automaticamente
+✔ validar se o Supabase já está conectado corretamente
+✔ garantir que as rotas /api/generate-key, /api/list-keys, /api/delete-key funcionem com o Supabase
+✔ garantir que a tabela access_keys está funcionando
+✔ garantir que o hash + salt estão funcionando
+✔ garantir que a MASTER_KEY pode gerar novas keys normalmente
+
+Não remova nada do projeto — apenas ajuste o que faltar.
+
+🟩 2. Remover o texto "Chave de demonstração: DEMO-2024-ULTRA" da tela de login
+
+Por favor:
+
+✔ localize onde esse texto aparece
+✔ remova ELE COMPLETAMENTE do frontend
+✔ garanta que nada relacionado a essa demo key continue existindo
+✔ não quebre o layout do login ao fazer isso
+🟩 3. Gerar uma nova MASTER_KEY real e testar o login NA HORA
+
+Você deve:
+
+✔ gerar uma MASTER_KEY real usando crypto
+
+Formato desejado:
+
+MASTER-KEY-[hash bem longo]
+
+✔ colocar essa MASTER_KEY automaticamente nas variáveis de ambiente (sem VITE_)
+
+Nome correto:
+
+MASTER_KEY=xxxxxxxx
+
+✔ rodar o projeto com essa chave
+✔ tentar fazer login usando essa nova MASTER_KEY
+✔ confirmar que o login funciona
+✔ confirmar que o painel admin é liberado
+✔ confirmar que o botão de geração de chaves aparece
+✔ confirmar que o painel funciona do começo ao fim
+
+Faça esse teste na minha frente e mostre o resultado.
+
+🟩 4. Garantir que o projeto está 100% funcional no Vercel
+
+Verifique EXATAMENTE:
+
+login funcionando
+
+session funcionando
+
+cookies funcionando
+
+painel admin funcionando
+
+geração de chaves funcionando
+
+listagem funcionando
+
+exclusão funcionando
+
+Supabase funcionando
+
+nenhuma mensagem de erro no console
+
+NENHUM “Failed to fetch”
+
+NENHUM erro silencioso
+
+frontend sem textos temporários
+
+E no final me entregue:
+
+✔ explicação do que foi corrigido
+✔ rotas revisadas
+✔ código final
+✔ confirmação de tudo 100% operacional
+✔ print ou simulação de login bem-sucedido com a nova MASTER_KEY
+🔥 EXECUTE AGORA. NÃO REMOVA NADA DO PROJETO. CORRIJA SOMENTE O NECESSÁRIO.

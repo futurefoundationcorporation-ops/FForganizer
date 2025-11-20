@@ -1,0 +1,180 @@
+Quero que você configure meu projeto mantendo TODOS os arquivos que já estão no GitHub — não remova nada.
+Preciso que você implemente um sistema de autenticação por CHAVE, com as seguintes regras:
+
+✅ 1. Master Key
+
+Eu terei uma única MASTER_KEY (já existe no projeto).
+
+Quando o usuário digita a MASTER_KEY no login:
+
+Ele é autenticado como ADMIN.
+
+Ele pode acessar a rota /admin.
+
+Ele pode criar, visualizar e excluir outras chaves de acesso.
+
+✅ 2. Chaves normais
+
+Criadas apenas por administradores.
+
+Salvas na tabela access_keys já existente.
+
+Cada chave:
+
+Tem id, key, label, created_by, created_at.
+
+Dá acesso ao sistema, mas não é admin.
+
+Quando um usuário entra com uma chave normal:
+
+Ele acessa apenas sua área normal.
+
+Não tem acesso ao painel admin.
+
+✅ 3. Login sem email e sem senha
+
+Substituir completamente o sistema tradicional Supabase Auth:
+
+O login será apenas uma caixa de texto:
+"Digite sua chave para entrar"
+
+Usuários não precisam ter email nem senha.
+
+O login deve validar assim:
+
+✔️ Se chave == MASTER_KEY
+
+→ Autenticar como Admin
+
+✔️ Se chave está em access_keys
+
+→ Autenticar como usuário comum
+
+❌ Caso contrário
+
+→ Login inválido
+
+✅ 4. Sessão / Estado
+
+O sistema deve manter a sessão assim:
+
+localStorage.setItem("access_key", "...chave...")
+
+
+E o hook de autenticação deve funcionar assim:
+
+if (key === MASTER_KEY) isAdmin = true
+else if (key in access_keys) isAdmin = false
+else logout
+
+✅ 5. Supabase Considerações
+
+Não quero usar Supabase Auth.
+Mas quero manter a estrutura das tabelas com user_id.
+
+Portanto:
+
+✔️ Criar um "usuário fantasma" no auth.users
+
+ID fixo, por exemplo:
+
+ffffffff-ffff-ffff-ffff-ffffffffffff
+
+
+Usado como user_id para todos os dados criados por qualquer chave.
+
+✔️ Policies devem ignorar auth.uid() e usar sempre esse ID fixo
+
+Ou seja:
+
+auth.uid() = 'ffffffff-ffff-ffff-ffff-ffffffffffff'
+
+✅ 6. Manter TODAS as funcionalidades já existentes
+
+Não remover nada.
+Apenas adicionar:
+
+Login por chave
+
+Verificação de admin
+
+Carregamento da MASTER_KEY e chaves normais
+
+Painel admin para gerar e excluir chaves
+
+Sessões persistentes
+
+✅ 7. Arquivos que precisam ser criados/alterados
+
+Criar ou atualizar:
+
+/src/pages/Login.jsx
+
+/src/hooks/useAuth.js (ou semelhante)
+
+/src/hooks/useAdmin.js (já existe)
+
+/src/utils/keyValidator.js
+
+/src/pages/Admin.jsx
+
+/src/components/AdminPanel.jsx
+
+📌 O Login.jsx deve ser assim:
+
+Input: “Digite sua chave”
+
+Botão: Entrar
+
+Ao clicar:
+
+Verificar MASTER_KEY
+
+Verificar access_keys
+
+Salvar sessão
+
+Redirecionar para dashboard
+
+📌 O useAuth() deve:
+
+Ler key do localStorage
+
+Validar admin ou user
+
+Se chave inválida → logout automático
+
+📌 O useAdmin() deve:
+
+Apenas retornar:
+
+return isAdmin === true
+
+📌 IMPORTANTE
+
+Não quero que o sistema use:
+
+signUp
+
+signIn
+
+magic link
+
+OAuth
+
+email
+
+senha
+
+Apenas CHAVES.
+
+🔥 Resultado esperado
+
+Ao final, quero:
+
+✔ Sistema 100% funcionando via login por chave
+✔ Painel /admin acessível apenas pela MASTER KEY
+✔ Usuários comuns só entram com chaves geradas
+✔ Nenhum arquivo removido
+✔ Toda funcionalidade atual preservada
+✔ Supabase funcionando sem Auth tradicional
