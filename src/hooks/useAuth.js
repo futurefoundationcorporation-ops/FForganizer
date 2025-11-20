@@ -1,4 +1,3 @@
-// src/hooks/useAuth.js
 import { useState, useEffect } from 'react'
 import { loginWithKey, getSession, logout } from '../utils/authApi'
 import { GHOST_USER_ID } from '../utils/keyValidator'
@@ -36,14 +35,11 @@ export function useAuth() {
 
   const signIn = async (accessKey) => {
     try {
-      // tenta logar no backend
       const result = await loginWithKey(accessKey)
 
-      // aceita formatos diferentes: { ok: true } ou { success: true }
       const succeeded = !!(result && (result.ok === true || result.success === true))
 
       if (!succeeded) {
-        // tenta tirar mensagem de erro em diferentes propriedades
         const message = result?.error || result?.message || 'Chave de acesso inválida'
         return { 
           data: null, 
@@ -51,8 +47,6 @@ export function useAuth() {
         }
       }
 
-      // Após login bem-sucedido, confirmar sessão chamando /api/session
-      // (o backend criou um cookie HTTP-only; precisamos checar)
       const session = await getSession()
 
       if (!session || !session.valid) {
