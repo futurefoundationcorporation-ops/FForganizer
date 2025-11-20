@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { generateAccessKey, listAccessKeys, deleteAccessKey } from '../utils/authApi'
-import { copyToClipboard, formatDate } from '../utils/keyGenerator'
+import { copyToClipboard } from '../utils/sharing'
 import { Key, Copy, Trash2, Plus, Check, AlertCircle } from 'lucide-react'
 import { Button } from './Button'
 import { Input } from './Input'
@@ -20,6 +20,17 @@ export function AdminPanel() {
   useEffect(() => {
     loadKeys()
   }, [user])
+
+  function formatDate(dateValue) {
+    const d = typeof dateValue === 'string' ? new Date(dateValue) : dateValue?.toDate?.() || new Date()
+    return d.toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
 
   async function loadKeys() {
     if (!user || !user.isAdmin) {

@@ -1,5 +1,7 @@
 const isReplit = window.location.hostname.includes('replit.dev') || window.location.hostname.includes('repl.co')
-const API_BASE = isReplit ? '/api' : (import.meta.env.DEV ? 'http://localhost:3001/api/auth' : '/api')
+const API_BASE = '/api'
+import { auth } from '../lib/firebase'
+import { signInWithCustomToken } from 'firebase/auth'
 
 export async function loginWithKey(key) {
   try {
@@ -13,16 +15,15 @@ export async function loginWithKey(key) {
     })
 
     const data = await response.json()
-    
     if (!response.ok || !data.ok) {
       throw new Error(data.error || 'Erro ao fazer login')
     }
 
-    return {
-      success: true,
-      isAdmin: data.isAdmin,
-      expiresAt: data.expiresAt
+    if (data.customToken) {
+      await signInWithCustomToken(auth, data.customToken)
     }
+
+    return { success: true, isAdmin: data.isAdmin, expiresAt: data.expiresAt }
   } catch (error) {
     console.error('Login error:', error)
     return {
@@ -50,8 +51,7 @@ export async function getSession() {
 
     return {
       valid: true,
-      isAdmin: data.isAdmin,
-      expiresAt: data.expiresAt
+      isAdmin: data.isAdmin
     }
   } catch (error) {
     console.error('Session validation error:', error)

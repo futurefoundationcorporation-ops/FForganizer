@@ -4,7 +4,20 @@ import { useAuth } from '../hooks/useAuth'
 import { useKeyboard } from '../hooks/useKeyboard'
 import { useTheme } from '../hooks/useTheme'
 import { useAdmin } from '../hooks/useAdmin'
-import { supabase, isSupabaseConfigured } from '../lib/supabaseClient'
+import { db } from '../lib/firebase'
+import {
+  collection,
+  query as fsQuery,
+  where,
+  orderBy,
+  getDocs,
+  addDoc,
+  doc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  serverTimestamp,
+} from 'firebase/firestore'
 import { Button } from '../components/Button'
 import { SearchBar } from '../components/SearchBar'
 import { FolderCard } from '../components/FolderCard'
@@ -24,8 +37,11 @@ export function Dashboard() {
   const { isAdmin } = useAdmin()
   const navigate = useNavigate()
   const [folders, setFolders] = useState([])
+  const [subfolders, setSubfolders] = useState([])
   const [prompts, setPrompts] = useState([])
   const [selectedFolder, setSelectedFolder] = useState(null)
+  const [selectedSubfolder, setSelectedSubfolder] = useState(null)
+  const [breadcrumbs, setBreadcrumbs] = useState([{ id: null, name: 'Início' }])
   const [searchQuery, setSearchQuery] = useState('')
   const [stats, setStats] = useState({ totalFolders: 0, totalPrompts: 0, recentDays: 0 })
   
@@ -44,12 +60,7 @@ export function Dashboard() {
   const [shareUrl, setShareUrl] = useState('')
 
   useEffect(() => {
-    if (isSupabaseConfigured) {
-      loadFolders()
-      loadPrompts()
-    } else {
-      loadLocalData()
-    }
+    loadRootFolders()
   }, [user])
 
   useKeyboard({
@@ -61,125 +72,115 @@ export function Dashboard() {
     },
   })
 
-  const loadLocalData = () => {
-    const localFolders = JSON.parse(localStorage.getItem('folders') || '[]')
-    const localPrompts = JSON.parse(localStorage.getItem('prompts') || '[]')
-    setFolders(localFolders)
-    setPrompts(localPrompts)
-    setStats({ 
-      totalFolders: localFolders.length, 
-      totalPrompts: localPrompts.length,
-      recentDays: localPrompts.filter(p => {
-        const date = new Date(p.created_at)
-        const now = new Date()
-        const diff = now - date
-        return diff < 7 * 24 * 60 * 60 * 1000
-      }).length
+  const loadLocalData = () => {}
+
+  const saveLocalData = () => {}
+
+  const loadRootFolders = async () => {
+    const q = fsQuery(collection(db, 'folders'), where('parent_id', '==', null), orderBy('created_at', 'desc'))
+    const snap = await getDocs(q)
+    const items = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    setFolders(items)
+    setSubfolders([])
+    setPrompts([])
+    setSelectedFolder(null)
+    setSelectedSubfolder(null)
+    setBreadcrumbs([{ id: null, name: 'Início' }])
+    setStats(prev => ({ ...prev, totalFolders: items.length }))
+  }
+
+  const loadSubfolders = async (parentId) => {
+    const q = fsQuery(collection(db, 'folders'), where('parent_id', '==', parentId), orderBy('created_at', 'desc'))
+    const snap = await getDocs(q)
+    const items = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    setSubfolders(items)
+    setPrompts([])
+    setStats(prev => ({ ...prev }))
+  }
+
+  const enterFolder = async (folder) => {
+    const q = fsQuery(collection(db, 'folders'), where('parent_id', '==', folder.id), orderBy('created_at', 'desc'))
+    const snap = await getDocs(q)
+    const children = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    setBreadcrumbs(prev => [...prev, { id: folder.id, name: folder.name }])
+    if (children.length > 0) {
+      setSelectedFolder(folder.id)
+      setSelectedSubfolder(null)
+      setSubfolders(children)
+      setPrompts([])
+    } else {
+      setSelectedSubfolder(folder.id)
+      setSelectedFolder(folder.parent_id || null)
+      await loadPrompts(folder.id)
+    }
+  }
+
+  const goToCrumb = async (index) => {
+    const path = breadcrumbs.slice(0, index + 1)
+    setBreadcrumbs(path)
+    const target = path[path.length - 1]
+    if (!target.id) {
+      await loadRootFolders()
+      return
+    }
+    const parentId = path.length >= 2 ? path[path.length - 2].id : null
+    setSelectedFolder(parentId)
+    const q = fsQuery(collection(db, 'folders'), where('parent_id', '==', target.id), orderBy('created_at', 'desc'))
+    const snap = await getDocs(q)
+    const children = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    if (children.length > 0) {
+      setSubfolders(children)
+      setSelectedSubfolder(null)
+      setPrompts([])
+    } else {
+      setSelectedSubfolder(target.id)
+      await loadPrompts(target.id)
+    }
+  }
+
+  const loadPrompts = async (folderId) => {
+    const q = fsQuery(collection(db, 'prompts'), where('folder_id', '==', folderId), orderBy('created_at', 'desc'))
+    const snap = await getDocs(q)
+    const data = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    setPrompts(data)
+    const recent = data.filter(p => {
+      const date = new Date(p.created_at)
+      const now = new Date()
+      return now - date < 7 * 24 * 60 * 60 * 1000
     })
-  }
-
-  const saveLocalData = (newFolders, newPrompts) => {
-    localStorage.setItem('folders', JSON.stringify(newFolders))
-    localStorage.setItem('prompts', JSON.stringify(newPrompts))
-  }
-
-  const loadFolders = async () => {
-    const { data, error } = await supabase
-      .from('folders')
-      .select('*, prompts(count)')
-      .eq('user_id', user?.id)
-      .order('created_at', { ascending: false })
-
-    if (!error && data) {
-      const foldersWithCount = data.map(folder => ({
-        ...folder,
-        prompt_count: folder.prompts?.[0]?.count || 0
-      }))
-      setFolders(foldersWithCount)
-      setStats(prev => ({ ...prev, totalFolders: data.length }))
-    }
-  }
-
-  const loadPrompts = async (folderId = null) => {
-    let query = supabase
-      .from('prompts')
-      .select('*')
-      .eq('user_id', user?.id)
-      .order('created_at', { ascending: false })
-
-    if (folderId) {
-      query = query.eq('folder_id', folderId)
-    }
-
-    const { data, error } = await query
-
-    if (!error && data) {
-      setPrompts(data)
-      const recent = data.filter(p => {
-        const date = new Date(p.created_at)
-        const now = new Date()
-        const diff = now - date
-        return diff < 7 * 24 * 60 * 60 * 1000
-      })
-      setStats(prev => ({ ...prev, totalPrompts: data.length, recentDays: recent.length }))
-    }
+    setStats(prev => ({ ...prev, totalPrompts: data.length, recentDays: recent.length }))
   }
 
   const createFolder = async () => {
     if (!newFolderName.trim()) return
-
-    const newFolder = {
-      id: Date.now().toString(),
+    await addDoc(collection(db, 'folders'), {
       name: newFolderName,
-      user_id: user.id,
-      created_at: new Date().toISOString(),
-      prompt_count: 0
-    }
-
-    if (isSupabaseConfigured) {
-      const { error } = await supabase
-        .from('folders')
-        .insert([{ name: newFolderName, user_id: user.id }])
-
-      if (!error) {
-        setNewFolderName('')
-        setShowNewFolderModal(false)
-        loadFolders()
-      }
+      description: '',
+      parent_id: selectedFolder || null,
+      created_at: serverTimestamp(),
+      updated_at: serverTimestamp(),
+    })
+    setNewFolderName('')
+    setShowNewFolderModal(false)
+    if (selectedFolder) {
+      await loadSubfolders(selectedFolder)
     } else {
-      const newFolders = [...folders, newFolder]
-      setFolders(newFolders)
-      saveLocalData(newFolders, prompts)
-      setNewFolderName('')
-      setShowNewFolderModal(false)
+      await loadRootFolders()
     }
   }
 
   const deleteFolder = async (folderId) => {
     if (!confirm('Excluir esta pasta e todos os prompts dentro dela?')) return
-
-    if (isSupabaseConfigured) {
-      const { error } = await supabase
-        .from('folders')
-        .delete()
-        .eq('id', folderId)
-
-      if (!error) {
-        loadFolders()
-        if (selectedFolder === folderId) {
-          setSelectedFolder(null)
-          loadPrompts()
-        }
-      }
+    await deleteDoc(doc(db, 'folders', folderId))
+    const ps = await getDocs(fsQuery(collection(db, 'prompts'), where('folder_id', '==', folderId)))
+    await Promise.all(ps.docs.map(d => deleteDoc(doc(db, 'prompts', d.id))))
+    if (selectedFolder === folderId) {
+      setSelectedFolder(null)
+      setSelectedSubfolder(null)
+      await loadRootFolders()
     } else {
-      const newFolders = folders.filter(f => f.id !== folderId)
-      const newPrompts = prompts.filter(p => p.folder_id !== folderId)
-      setFolders(newFolders)
-      setPrompts(newPrompts)
-      saveLocalData(newFolders, newPrompts)
-      if (selectedFolder === folderId) {
-        setSelectedFolder(null)
-      }
+      if (selectedFolder) await loadSubfolders(selectedFolder)
+      else await loadRootFolders()
     }
   }
 
@@ -188,52 +189,21 @@ export function Dashboard() {
 
     const tags = promptTags.split(',').map(t => t.trim()).filter(Boolean)
 
-    const newPrompt = {
-      id: Date.now().toString(),
+    await addDoc(collection(db, 'prompts'), {
       title: promptTitle,
       content: promptContent,
       tags,
-      folder_id: selectedFolder,
-      user_id: user.id,
+      folder_id: selectedSubfolder,
+      version: 1,
+      versions: [{ content: promptContent, created_at: new Date().toISOString() }],
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }
-
-    if (isSupabaseConfigured) {
-      const { data, error } = await supabase
-        .from('prompts')
-        .insert([{
-          title: promptTitle,
-          content: promptContent,
-          tags,
-          folder_id: selectedFolder,
-          user_id: user.id
-        }])
-        .select()
-
-      if (!error && data) {
-        await supabase
-          .from('prompt_versions')
-          .insert([{
-            prompt_id: data[0].id,
-            content: promptContent
-          }])
-
-        setPromptTitle('')
-        setPromptContent('')
-        setPromptTags('')
-        setShowNewPromptModal(false)
-        loadPrompts(selectedFolder)
-      }
-    } else {
-      const newPrompts = [...prompts, newPrompt]
-      setPrompts(newPrompts)
-      saveLocalData(folders, newPrompts)
-      setPromptTitle('')
-      setPromptContent('')
-      setPromptTags('')
-      setShowNewPromptModal(false)
-    }
+      updated_at: new Date().toISOString(),
+    })
+    setPromptTitle('')
+    setPromptContent('')
+    setPromptTags('')
+    setShowNewPromptModal(false)
+    loadPrompts(selectedSubfolder)
   }
 
   const updatePrompt = async () => {
@@ -241,67 +211,32 @@ export function Dashboard() {
 
     const tags = promptTags.split(',').map(t => t.trim()).filter(Boolean)
 
-    if (isSupabaseConfigured) {
-      const { error } = await supabase
-        .from('prompts')
-        .update({
-          title: promptTitle,
-          content: promptContent,
-          tags,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', currentPrompt.id)
-
-      if (!error) {
-        if (promptContent !== currentPrompt.content) {
-          await supabase
-            .from('prompt_versions')
-            .insert([{
-              prompt_id: currentPrompt.id,
-              content: promptContent
-            }])
-        }
-
-        setCurrentPrompt(null)
-        setPromptTitle('')
-        setPromptContent('')
-        setPromptTags('')
-        setShowEditPromptModal(false)
-        loadPrompts(selectedFolder)
-      }
-    } else {
-      const newPrompts = prompts.map(p => 
-        p.id === currentPrompt.id 
-          ? { ...p, title: promptTitle, content: promptContent, tags, updated_at: new Date().toISOString() }
-          : p
-      )
-      setPrompts(newPrompts)
-      saveLocalData(folders, newPrompts)
-      setCurrentPrompt(null)
-      setPromptTitle('')
-      setPromptContent('')
-      setPromptTags('')
-      setShowEditPromptModal(false)
-    }
+    const pRef = doc(db, 'prompts', currentPrompt.id)
+    const changedContent = promptContent !== currentPrompt.content
+    const newVersions = changedContent
+      ? [...(currentPrompt.versions || []), { content: promptContent, created_at: new Date().toISOString() }]
+      : currentPrompt.versions || []
+    await updateDoc(pRef, {
+      title: promptTitle,
+      content: promptContent,
+      tags,
+      updated_at: new Date().toISOString(),
+      version: changedContent ? (Number(currentPrompt.version || 1) + 1) : currentPrompt.version || 1,
+      versions: newVersions,
+    })
+    setCurrentPrompt(null)
+    setPromptTitle('')
+    setPromptContent('')
+    setPromptTags('')
+    setShowEditPromptModal(false)
+    loadPrompts(selectedSubfolder)
   }
 
   const deletePrompt = async (promptId) => {
     if (!confirm('Excluir este prompt?')) return
 
-    if (isSupabaseConfigured) {
-      const { error } = await supabase
-        .from('prompts')
-        .delete()
-        .eq('id', promptId)
-
-      if (!error) {
-        loadPrompts(selectedFolder)
-      }
-    } else {
-      const newPrompts = prompts.filter(p => p.id !== promptId)
-      setPrompts(newPrompts)
-      saveLocalData(folders, newPrompts)
-    }
+    await deleteDoc(doc(db, 'prompts', promptId))
+    loadPrompts(selectedSubfolder)
   }
 
   const openEditPrompt = (prompt) => {
@@ -313,62 +248,35 @@ export function Dashboard() {
   }
 
   const viewVersions = async (prompt) => {
-    if (isSupabaseConfigured) {
-      const { data, error } = await supabase
-        .from('prompt_versions')
-        .select('*')
-        .eq('prompt_id', prompt.id)
-        .order('created_at', { ascending: false })
-
-      if (!error && data) {
-        setVersions(data)
-        setCurrentPrompt(prompt)
-        setShowVersionsModal(true)
-      }
-    } else {
-      alert('Versionamento disponível apenas com Supabase configurado')
-    }
+    setVersions([...prompt.versions || []].reverse())
+    setCurrentPrompt(prompt)
+    setShowVersionsModal(true)
   }
 
   const restoreVersion = async (version) => {
     if (!confirm('Restaurar esta versão?')) return
 
-    const { error } = await supabase
-      .from('prompts')
-      .update({ content: version.content, updated_at: new Date().toISOString() })
-      .eq('id', currentPrompt.id)
-
-    if (!error) {
-      await supabase
-        .from('prompt_versions')
-        .insert([{
-          prompt_id: currentPrompt.id,
-          content: version.content
-        }])
-
-      setShowVersionsModal(false)
-      loadPrompts(selectedFolder)
-    }
+    const pRef = doc(db, 'prompts', currentPrompt.id)
+    const nextVersions = [...(currentPrompt.versions || []), { content: version.content, created_at: new Date().toISOString() }]
+    await updateDoc(pRef, {
+      content: version.content,
+      updated_at: new Date().toISOString(),
+      version: Number(currentPrompt.version || 1) + 1,
+      versions: nextVersions,
+    })
+    setShowVersionsModal(false)
+    loadPrompts(selectedSubfolder)
   }
 
   const sharePrompt = async (prompt) => {
-    if (isSupabaseConfigured) {
-      const token = generateShareToken()
-      const { error } = await supabase
-        .from('share_tokens')
-        .insert([{
-          prompt_id: prompt.id,
-          token
-        }])
-
-      if (!error) {
-        const url = getShareUrl(token)
-        setShareUrl(url)
-        setShowShareModal(true)
-      }
-    } else {
-      alert('Compartilhamento disponível apenas com Supabase configurado')
-    }
+    const created = await addDoc(collection(db, 'shared_links'), {
+      prompt_id: currentPrompt?.id || prompt.id,
+      created_at: serverTimestamp(),
+      expires_at: null,
+    })
+    const url = `${window.location.origin}/share/${created.id}`
+    setShareUrl(url)
+    setShowShareModal(true)
   }
 
   const handleExport = async () => {
@@ -387,28 +295,11 @@ export function Dashboard() {
       return
     }
 
-    if (isSupabaseConfigured) {
-      for (const folder of data.folders) {
-        await supabase
-          .from('folders')
-          .insert([{ name: folder.name, user_id: user.id }])
-      }
-
-      for (const prompt of data.prompts) {
-        await supabase
-          .from('prompts')
-          .insert([{ ...prompt, user_id: user.id }])
-      }
-
-      loadFolders()
-      loadPrompts()
-    } else {
-      const newFolders = [...folders, ...data.folders.map(f => ({ ...f, id: Date.now().toString() + Math.random(), user_id: user.id }))]
-      const newPrompts = [...prompts, ...data.prompts.map(p => ({ ...p, id: Date.now().toString() + Math.random(), user_id: user.id }))]
-      setFolders(newFolders)
-      setPrompts(newPrompts)
-      saveLocalData(newFolders, newPrompts)
+    for (const folder of data.folders) {
+      await importFolderAndPrompts(folder)
     }
+
+    await loadRootFolders()
   }
 
   const filteredPrompts = prompts.filter(prompt => {
@@ -431,7 +322,6 @@ export function Dashboard() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold">Prompt Manager Ultra</h1>
-                <p className="text-xs text-muted-foreground">Chave: {user?.accessKey}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -466,17 +356,7 @@ export function Dashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8">
-        {!isSupabaseConfigured && (
-          <div className="mb-6 p-4 bg-warning/10 border border-warning/20 rounded-lg flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-warning">Modo Local Ativo</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Os dados estão sendo salvos localmente no navegador. Configure o Supabase para sincronização em nuvem, versionamento e compartilhamento.
-              </p>
-            </div>
-          </div>
-        )}
+        
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-card border border-primary/20 rounded-xl p-6 shadow-glow">
@@ -504,25 +384,33 @@ export function Dashboard() {
 
         <section className="mb-12">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold">Minhas Pastas</h2>
-            <Button onClick={() => setShowNewFolderModal(true)}>
+            <h2 className="text-2xl font-bold">
+              {selectedFolder ? 'Subpastas' : 'Pastas Raiz'}
+            </h2>
+            <div className="flex gap-3">
+              <nav className="flex items-center gap-2 text-sm text-muted-foreground">
+                {breadcrumbs.map((bc, idx) => (
+                  <button
+                    key={bc.id ?? 'root'}
+                    onClick={() => goToCrumb(idx)}
+                    className="hover:text-primary"
+                  >
+                    {bc.name}
+                  </button>
+                )).reduce((acc, el, i) => acc.concat(i ? [<span key={`sep-${i}`}>/</span>, el] : [el]), [])}
+              </nav>
+              <Button onClick={() => setShowNewFolderModal(true)}>
               <Plus className="w-5 h-5 mr-2" />
-              Nova Pasta
+              {selectedFolder ? 'Nova Subpasta' : 'Nova Pasta'}
             </Button>
+            </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {folders.map(folder => (
+            {(selectedFolder ? subfolders : folders).map(folder => (
               <FolderCard
                 key={folder.id}
                 folder={folder}
-                onClick={() => {
-                  setSelectedFolder(folder.id)
-                  if (isSupabaseConfigured) {
-                    loadPrompts(folder.id)
-                  } else {
-                    setSearchQuery('')
-                  }
-                }}
+                onClick={() => enterFolder(folder)}
                 onDelete={deleteFolder}
                 isActive={selectedFolder === folder.id}
               />
@@ -539,19 +427,21 @@ export function Dashboard() {
         <section>
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
             <h2 className="text-2xl font-bold">
-              {selectedFolder ? 'Prompts da Pasta' : 'Todos os Prompts'}
+              {selectedSubfolder ? 'Prompts da Subpasta' : 'Selecione uma subpasta para ver os prompts'}
             </h2>
             <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
               <SearchBar value={searchQuery} onChange={setSearchQuery} />
+              {selectedSubfolder && (
               <Button onClick={() => setShowNewPromptModal(true)}>
                 <Plus className="w-5 h-5 mr-2" />
                 Novo Prompt
               </Button>
+              )}
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredPrompts
-              .filter(p => !selectedFolder || p.folder_id === selectedFolder)
+              .filter(p => !selectedSubfolder || p.folder_id === selectedSubfolder)
               .map(prompt => (
                 <PromptCard
                   key={prompt.id}
@@ -563,7 +453,7 @@ export function Dashboard() {
                 />
               ))}
           </div>
-          {filteredPrompts.filter(p => !selectedFolder || p.folder_id === selectedFolder).length === 0 && (
+          {selectedSubfolder && filteredPrompts.filter(p => p.folder_id === selectedSubfolder).length === 0 && (
             <div className="text-center py-12">
               <FileText className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground">Nenhum prompt encontrado</p>
@@ -720,3 +610,38 @@ export function Dashboard() {
     </div>
   )
 }
+  async function importFolderAndPrompts(folder) {
+    const folderDoc = doc(db, 'folders', folder.id)
+    await updateDoc(folderDoc, {}).catch(async () => {})
+    await updateDoc(folderDoc, {
+      name: folder.name,
+      description: folder.description || '',
+      parent_id: folder.parent_id ?? null,
+      created_at: folder.createdAt ? new Date(folder.createdAt).toISOString() : new Date().toISOString(),
+      updated_at: folder.updatedAt ? new Date(folder.updatedAt).toISOString() : new Date().toISOString(),
+    }).catch(async () => {
+      await setDoc(folderDoc, {
+        name: folder.name,
+        description: folder.description || '',
+        parent_id: folder.parent_id ?? null,
+        created_at: folder.createdAt ? new Date(folder.createdAt).toISOString() : new Date().toISOString(),
+        updated_at: folder.updatedAt ? new Date(folder.updatedAt).toISOString() : new Date().toISOString(),
+      })
+    })
+
+    if (folder.prompts && Array.isArray(folder.prompts)) {
+      for (const prompt of folder.prompts) {
+        const promptDoc = doc(db, 'prompts', prompt.id)
+        await setDoc(promptDoc, {
+          title: prompt.title,
+          content: prompt.content,
+          tags: prompt.tags || [],
+          folder_id: folder.id,
+          version: 1,
+          versions: [{ content: prompt.content, created_at: prompt.createdAt || new Date().toISOString() }],
+          created_at: prompt.createdAt || new Date().toISOString(),
+          updated_at: prompt.updatedAt || new Date().toISOString(),
+        })
+      }
+    }
+  }

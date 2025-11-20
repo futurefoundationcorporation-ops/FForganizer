@@ -1,184 +1,113 @@
-# 🎯 Prompt Manager Ultra
+# Prompt Manager Ultra — Firebase
 
-Sistema completo de gerenciamento de prompts com autenticação por chave, versionamento, compartilhamento e muito mais.
+Sistema de gerenciamento de prompts com autenticação por chave, sessão permanente, hierarquia de pastas, versionamento, compartilhamento e import/export de JSON — totalmente unificado no Firebase.
 
-**Status**: ✅ Pronto para produção | Compatível com Replit + Vercel
+## Funcionalidades
 
----
+- Autenticação por chave (MASTER_KEY ou Access Key)
+- Sessões permanentes com cookies HTTP-only
+- Painel admin para gerar/listar/deletar Access Keys
+- CRUD completo de pastas/subpastas/prompts no Firestore
+- Versionamento de prompts via `versions[]`
+- Compartilhamento de prompts por link
+- Importação/Exportação compatível com `Backup_adaptado-EXEMPLO.json`
 
-## 🚀 Quick Start
+## Tecnologias
 
-### 1. Configure o Supabase
+- Frontend: React 18 + Vite + Tailwind CSS
+- Backend: Firebase Functions (Node 18)
+- Banco: Cloud Firestore
+- Auth: Firebase Auth via `customToken`
+- Deploy: Firebase Hosting + Functions
 
-Execute no editor SQL do Supabase:
-1. `SUPABASE_SCHEMA_SECURE_2025.sql`
-2. `SUPABASE_SESSIONS_SCHEMA.sql`
+## Configuração
 
-### 2. Configure Variáveis de Ambiente
+Crie `.env.local` com:
 
-```bash
-VITE_SUPABASE_URL=https://seu-projeto.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbG...
-SUPABASE_SERVICE_ROLE_KEY=eyJhbG...
+```
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=...
+VITE_FIREBASE_PROJECT_ID=...
+VITE_FIREBASE_STORAGE_BUCKET=...
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
 ```
 
-**Ver guia completo**: [QUICK_START.md](./QUICK_START.md)
+Defina a MASTER_KEY somente no backend (Functions):
 
----
-
-## ✨ Funcionalidades
-
-- ✅ **Autenticação por Chave** - Sem email/senha, apenas MASTER_KEY ou Access Key
-- ✅ **Painel Admin** - Geração e gerenciamento de chaves de acesso
-- ✅ **Sessões Persistentes** - Cookies HTTP-only seguros
-- ✅ **CRUD Completo** - Pastas e prompts com versionamento
-- ✅ **Compartilhamento** - Links públicos para prompts
-- ✅ **Import/Export** - Backup e restauração em JSON
-- ✅ **Busca Avançada** - Por título, conteúdo e tags
-- ✅ **Modo Dark/Light** - Interface adaptável
-- ✅ **Atalhos de Teclado** - Produtividade aumentada
-
----
-
-## 🛠️ Tecnologias
-
-- **Frontend**: React 18 + Vite + Tailwind CSS
-- **Backend**: Supabase (PostgreSQL + Row Level Security)
-- **Autenticação**: Sistema próprio baseado em chaves
-- **Deploy**: Vercel (produção) + Replit (desenvolvimento)
-
----
-
-## 📚 Documentação
-
-| Documento | Descrição |
-|-----------|-----------|
-| [QUICK_START.md](./QUICK_START.md) | ⚡ Início rápido em 3 passos |
-| [STATUS_FINAL_MIGRACAO.md](./STATUS_FINAL_MIGRACAO.md) | ✅ Resumo completo da migração |
-| [PROBLEMA_JSON_CORRIGIDO.md](./PROBLEMA_JSON_CORRIGIDO.md) | 🔧 Correções técnicas aplicadas |
-| [TESTE_LOGIN_COMPLETO.md](./TESTE_LOGIN_COMPLETO.md) | 🧪 Guia de teste detalhado |
-| [VERCEL_DEPLOYMENT_GUIDE.md](./VERCEL_DEPLOYMENT_GUIDE.md) | 🚀 Deploy na Vercel |
-| [replit.md](./replit.md) | ⚙️ Configuração do projeto |
-
----
-
-## 🏃 Desenvolvimento
-
-```bash
-# Instalar dependências
-npm install
-
-# Rodar em desenvolvimento (Replit)
-npm run dev:all
-
-# Build para produção
-npm run build
-
-# Preview do build
-npm run preview
+```
+firebase functions:config:set app.master_key="MASTER-KEY-<hash>"
 ```
 
----
-
-## 🚀 Deploy na Vercel
-
-### Via CLI:
-```bash
-npm install -g vercel
-vercel
-```
-
-### Via Dashboard:
-1. Importe o repositório
-2. Configure as variáveis de ambiente
-3. Build Command: `npm run build`
-4. Output Directory: `dist`
-5. Deploy!
-
-**Detalhes**: [VERCEL_DEPLOYMENT_GUIDE.md](./VERCEL_DEPLOYMENT_GUIDE.md)
-
----
-
-## 🔐 Segurança
-
-- ✅ MASTER_KEY protegida server-side (nunca exposta ao cliente)
-- ✅ Cookies HTTP-only (não acessíveis via JavaScript)
-- ✅ Row Level Security (RLS) no Supabase
-- ✅ Chaves geradas com alta entropia (256 bits)
-- ✅ Validação server-side de todas as requisições
-- ✅ SameSite=Strict (proteção CSRF)
-
----
-
-## 📝 Estrutura do Projeto
+## Estrutura
 
 ```
 /
-├── api/                    # Serverless functions (Vercel)
-│   ├── login.js
-│   ├── session.js
-│   ├── logout.js
-│   ├── generate-key.js
-│   ├── list-keys.js
-│   └── delete-key.js
-├── server.js               # Express server (Replit dev)
-├── src/
-│   ├── components/         # Componentes React
-│   ├── pages/              # Páginas principais
-│   ├── hooks/              # Custom hooks
-│   ├── lib/                # Configuração Supabase
-│   └── utils/              # Utilitários
-├── SUPABASE_SCHEMA_SECURE_2025.sql
-├── SUPABASE_SESSIONS_SCHEMA.sql
-└── vercel.json
+├── functions/             # Firebase Functions
+│   └── index.js           # login/session/logout/keys/shared
+├── src/                   # Frontend
+│   ├── components/        # UI
+│   ├── hooks/             # useAuth/useAdmin
+│   ├── lib/               # firebase.js
+│   ├── pages/             # Auth/Admin/Dashboard/SharedPrompt
+│   └── utils/             # authApi/export/sharing
+├── firebase.json          # Hosting rewrites
+├── firestore.rules        # Regras de segurança
+└── firestore.indexes.json # Índices recomendados
 ```
 
----
+## Firestore
 
-## 🎯 Arquitetura
+- `folders`: `name`, `description`, `parent_id`, `created_at`, `updated_at`
+- `prompts`: `folder_id`, `title`, `content`, `tags[]`, `version`, `versions[]`, `created_at`, `updated_at`
+- `shared_links`: `prompt_id`, `created_at`, `expires_at`
 
-### Desenvolvimento (Replit)
-- Express server na porta 3001
-- Vite dev server na porta 5000
-- Detecção automática via `import.meta.env.DEV`
+## Endpoints (Functions)
 
-### Produção (Vercel)
-- APIs serverless em `/api/*.js`
-- Frontend estático servido pela CDN
-- Sessões persistentes no Supabase
+- `POST /api/login` → valida chave, cria sessão, retorna `customToken`
+- `GET /api/session` → valida sessão (permanente)
+- `POST /api/logout` → apaga sessão e cookie
+- `POST /api/generate-key` → admin gera Access Key
+- `GET /api/list-keys` → admin lista chaves
+- `POST /api/delete-key` → admin deleta chave
+- `GET /api/get-shared?id=...` → obtém prompt por link
 
----
+## Deploy
 
-## ⚡ Performance
+```
+npm install
+npm run build
+firebase deploy
+```
 
-**Build otimizado**:
-- 📦 Bundle JS: 388 KB (109 KB gzipped)
-- 🎨 CSS: 18 KB (4 KB gzipped)
-- ⚡ Lighthouse Score: 95+
+Para publicar índices: `firebase deploy --only firestore:indexes`.
 
----
+## Segurança
 
-## 🤝 Contribuindo
+- MASTER_KEY nunca aparece no frontend
+- Cookies `HttpOnly + SameSite=Strict` (usa `Secure` em produção)
+- Todas as operações sensíveis apenas via Functions
 
-Este é um projeto pessoal, mas sugestões são bem-vindas!
+## MASTER_KEY — geração e rotação
 
----
+No modelo atual, a MASTER_KEY é lida de `functions.config().app.master_key` e não pode ser gerada/rotacionada programaticamente pelo runtime. A rotação deve ser feita via CLI:
 
-## 📄 Licença
+```
+firebase functions:config:set app.master_key="MASTER-KEY-<novo-hash>"
+firebase deploy --only functions
+```
 
-MIT License - use como quiser!
+Para gerar um valor seguro localmente:
 
----
+```
+node -e "console.log('MASTER-KEY-'+require('crypto').randomBytes(48).toString('hex'))"
+```
 
-## 📞 Suporte
+## Import/Export
 
-Problemas? Consulte a documentação:
-- [PROBLEMA_JSON_CORRIGIDO.md](./PROBLEMA_JSON_CORRIGIDO.md) - Soluções técnicas
-- [TESTE_LOGIN_COMPLETO.md](./TESTE_LOGIN_COMPLETO.md) - Guia de testes
-- [QUICK_START.md](./QUICK_START.md) - Início rápido
+- Importação: aceita `folders[]` com `prompts[]` aninhados; preserva IDs.
+- Exportação: gera estrutura compatível com o backup.
 
----
+## Licença
 
-**✅ Sistema 100% funcional e pronto para produção!**
-
-**Desenvolvido com** ❤️ **usando React + Vite + Supabase**
+MIT

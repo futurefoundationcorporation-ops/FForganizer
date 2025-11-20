@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { loginWithKey, getSession, logout } from '../utils/authApi'
-import { GHOST_USER_ID } from '../utils/keyValidator'
+import { auth } from '../lib/firebase'
 
 export function useAuth() {
   const [user, setUser] = useState(null)
@@ -18,9 +18,9 @@ export function useAuth() {
       
       if (session && session.valid) {
         setUser({
-          id: GHOST_USER_ID,
+          id: auth.currentUser?.uid || 'ghost',
           isAdmin: !!session.isAdmin,
-          expiresAt: session.expiresAt
+          expiresAt: null
         })
       } else {
         setUser(null)
@@ -48,7 +48,6 @@ export function useAuth() {
       }
 
       const session = await getSession()
-
       if (!session || !session.valid) {
         return {
           data: null,
@@ -57,9 +56,9 @@ export function useAuth() {
       }
 
       const userData = {
-        id: GHOST_USER_ID,
+        id: auth.currentUser?.uid || 'ghost',
         isAdmin: !!session.isAdmin,
-        expiresAt: session.expiresAt
+        expiresAt: null
       }
       
       setUser(userData)

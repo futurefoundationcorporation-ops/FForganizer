@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { supabase } from '../lib/supabaseClient'
+import { auth } from '../lib/firebase'
 import { Sparkles, Copy, Check } from 'lucide-react'
 import { Button } from '../components/Button'
 
@@ -15,13 +15,15 @@ export function SharedPrompt() {
   }, [token])
 
   const loadSharedPrompt = async () => {
-    const { data, error } = await supabase
-      .rpc('get_shared_prompt', { share_token: token })
-
-    if (!error && data && data.length > 0) {
-      setPrompt(data[0])
+    try {
+      const res = await fetch(`/api/get-shared?id=${encodeURIComponent(token)}`)
+      const json = await res.json()
+      if (res.ok && json.success) {
+        setPrompt(json.prompt)
+      }
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   const copyContent = () => {
