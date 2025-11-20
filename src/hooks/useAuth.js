@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { loginWithKey, getSession, logout } from '../utils/authApi'
+import authApi from '../utils/supabaseApi' // MUDANÇA AQUI
 import { auth } from '../lib/firebase'
 
 export function useAuth() {
@@ -7,14 +7,14 @@ export function useAuth() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    checkSession()
+    handleCheckSession()
   }, [])
 
-  async function checkSession() {
+  async function handleCheckSession() {
     try {
       setLoading(true)
       
-      const session = await getSession()
+      const session = await authApi.checkSession()
       
       if (session && session.valid) {
         setUser({
@@ -35,7 +35,7 @@ export function useAuth() {
 
   const signIn = async (accessKey) => {
     try {
-      const result = await loginWithKey(accessKey)
+      const result = await authApi.login(accessKey)
 
       const succeeded = !!(result && (result.ok === true || result.success === true))
 
@@ -47,7 +47,7 @@ export function useAuth() {
         }
       }
 
-      const session = await getSession()
+      const session = await authApi.checkSession()
       if (!session || !session.valid) {
         return {
           data: null,
@@ -74,7 +74,7 @@ export function useAuth() {
   }
 
   const signOut = async () => {
-    await logout()
+    await authApi.logout()
     setUser(null)
     return { error: null }
   }

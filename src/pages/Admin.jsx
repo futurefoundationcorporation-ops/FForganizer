@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAdmin } from '../hooks/useAdmin'
-import { AdminPanel } from '../components/AdminPanel'
+import AdminPanel from '../components/AdminPanel' // CORREÇÃO AQUI
 import { ShieldAlert, Loader2 } from 'lucide-react'
 import { Button } from '../components/Button'
 

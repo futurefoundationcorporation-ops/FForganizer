@@ -8,55 +8,9 @@
     ],
     "rewrites": [
       {
-        "source": "/api/login",
-        "function": "login"
-      },
-      {
-        "source": "/api/session",
-        "function": "session"
-      },
-      {
-        "source": "/api/logout",
-        "function": "logout"
-      },
-      {
-        "source": "/api/generate-key",
-        "function": "generateAccessKey"
-      },
-      {
-        "source": "/api/list-keys",
-        "function": "listAccessKeys"
-      },
-      {
-        "source": "/api/delete-key",
-        "function": "deleteAccessKey"
-      },
-      {
-        "source": "/api/get-shared",
-        "function": "getShared"
-      },
-      {
         "source": "**",
         "destination": "/index.html"
       }
     ]
-  },
-  "functions": {
-    "source": "functions"
-  },
-  "emulators": {
-    "functions": {
-      "port": 5001
-    },
-    "firestore": {
-      "port": 8080
-    },
-    "hosting": {
-      "port": 5000
-    },
-    "ui": {
-      "enabled": true
-    },
-    "singleProjectMode": true
   }
 }
