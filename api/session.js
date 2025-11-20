@@ -51,7 +51,7 @@ export default async function handler(req, res) {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     const { data, error } = await supabase.rpc('validate_admin_session', {
-      session_token: sessionToken
+      sessiontoken: sessionToken   // ← ALTERADO AQUI
     })
 
     if (error) {
