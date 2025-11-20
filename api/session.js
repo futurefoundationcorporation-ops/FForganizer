@@ -1,6 +1,5 @@
-const { createClient } = require('@supabase/supabase-js')
+import { createClient } from '@supabase/supabase-js'
 
-// Suporte para ambas as variáveis de ambiente (VITE_* para dev, sem prefixo para Vercel)
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
@@ -18,36 +17,13 @@ function parseCookies(cookieHeader) {
   return cookies
 }
 
-module.exports = async function handler(req, res) {
-  // Configurar headers CORS e Content-Type
+export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json')
-  
-  // CORS seguro: aceitar apenas origins confiáveis
-  const origin = req.headers.origin
-  const allowedOrigins = [
-    'http://localhost:5000',
-    'http://localhost:3000',
-    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
-    process.env.PRODUCTION_URL || null,
-    process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : null
-  ].filter(Boolean)
-  
-  const isReplit = origin && (origin.includes('replit.dev') || origin.includes('repl.co'))
-  
-  if (origin && (allowedOrigins.includes(origin) || isReplit)) {
-    res.setHeader('Access-Control-Allow-Origin', origin)
-    res.setHeader('Access-Control-Allow-Credentials', 'true')
-  }
-  
+  res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
-  
-  // Tratar OPTIONS (preflight)
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end()
-  }
-  
-  // Aceita GET e POST
+
+  if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
@@ -57,79 +33,68 @@ module.exports = async function handler(req, res) {
     const sessionToken = cookies.session_token
 
     if (!sessionToken) {
-      return res.status(200).json({ 
-        valid: false, 
+      return res.status(200).json({
+        valid: false,
         logged: false,
-        error: 'Nenhuma sessão ativa' 
+        error: 'Nenhuma sessão ativa'
       })
     }
 
     if (!supabaseUrl || !supabaseServiceKey) {
-      return res.status(500).json({ 
-        valid: false, 
+      return res.status(500).json({
+        valid: false,
         logged: false,
-        error: 'Supabase não configurado' 
+        error: 'Supabase não configurado'
       })
     }
 
-    try {
-      const supabase = createClient(supabaseUrl, supabaseServiceKey)
-      const { data, error } = await supabase.rpc('validate_admin_session', {
-        session_token: sessionToken
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+    const { data, error } = await supabase.rpc('validate_admin_session', {
+      session_token: sessionToken
+    })
+
+    if (error) {
+      console.error('Erro ao validar sessão:', error)
+      return res.status(500).json({
+        valid: false,
+        logged: false,
+        error: 'Erro ao validar sessão'
       })
+    }
 
-      if (error) {
-        console.error('Erro ao validar sessão:', error)
-        return res.status(500).json({ 
-          valid: false, 
-          logged: false,
-          error: 'Erro ao validar sessão' 
-        })
-      }
+    if (!data || !data.valid) {
+      // limpar cookie
+      const cookie = [
+        'session_token=',
+        'HttpOnly',
+        'Path=/',
+        'SameSite=Strict',
+        'Max-Age=0'
+      ].join('; ')
 
-      if (!data || !data.valid) {
-        // Limpar cookie se sessão inválida
-        const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1'
-        const isReplitEnv = process.env.REPL_ID || process.env.REPL_SLUG
-        const sameSite = isReplitEnv ? 'Lax' : 'Strict'
-        const clearCookieOptions = [
-          'session_token=',
-          'HttpOnly',
-          isProduction ? 'Secure' : '',
-          `SameSite=${sameSite}`,
-          'Path=/',
-          'Max-Age=0'
-        ].filter(Boolean).join('; ')
-        
-        res.setHeader('Set-Cookie', clearCookieOptions)
-        return res.status(200).json({ 
-          valid: false, 
-          logged: false,
-          error: data?.error || 'Sessão inválida' 
-        })
-      }
+      res.setHeader('Set-Cookie', cookie)
 
       return res.status(200).json({
-        valid: true,
-        logged: true,
-        isAdmin: data.is_admin,
-        sessionId: data.session_id,
-        expiresAt: data.expires_at
-      })
-    } catch (error) {
-      console.error('Erro ao validar sessão:', error)
-      return res.status(500).json({ 
-        valid: false, 
+        valid: false,
         logged: false,
-        error: 'Erro ao validar sessão' 
+        error: 'Sessão inválida'
       })
     }
+
+    return res.status(200).json({
+      valid: true,
+      logged: true,
+      isAdmin: data.is_admin,
+      sessionId: data.session_id,
+      expiresAt: data.expires_at
+    })
   } catch (error) {
     console.error('Erro inesperado na validação de sessão:', error)
-    return res.status(500).json({ 
-      valid: false, 
+    return res.status(500).json({
+      valid: false,
       logged: false,
-      error: 'Erro interno do servidor' 
+      error: 'Erro interno do servidor'
     })
   }
 }
