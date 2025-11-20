@@ -1,91 +1,67 @@
-import { useState } from 'react'
-import { useAuth } from '../hooks/useAuth'
-import { useTheme } from '../hooks/useTheme'
-import { Button } from '../components/Button'
-import { Input } from '../components/Input'
-import { Sparkles, Key, Sun, Moon } from 'lucide-react'
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-export function Auth() {
-  const [accessKey, setAccessKey] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const { signIn } = useAuth()
-  const { theme, toggleTheme } = useTheme()
+export default function Auth() {
+  const [accessKey, setAccessKey] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
+  const handleLogin = async () => {
+    setError("");
+    setLoading(true);
 
     try {
-      const { error } = await signIn(accessKey)
-      if (error) {
-        setError(error.message)
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ key: accessKey.trim() }),  // <<< SEM UPPERCASE
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Chave inválida");
+        setLoading(false);
+        return;
       }
+
+      // Salva sessão
+      localStorage.setItem("session_key", data.token);
+
+      // Vai para dashboard
+      navigate("/dashboard");
+
     } catch (err) {
-      setError('Ocorreu um erro. Tente novamente.')
-    } finally {
-      setLoading(false)
+      setError("Erro ao conectar ao servidor.");
     }
-  }
+
+    setLoading(false);
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
-        <div className="absolute top-4 right-4">
-          <Button variant="ghost" size="sm" onClick={toggleTheme}>
-            {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-          </Button>
-        </div>
-        
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-3 mb-4">
-            <div className="p-3 rounded-xl gradient-primary">
-              <Sparkles className="w-8 h-8 text-white" />
-            </div>
-            <h1 className="text-4xl font-bold">Prompt Manager Ultra</h1>
-          </div>
-          <p className="text-muted-foreground">
-            Sistema Premium de Prompts
-          </p>
-        </div>
+    <div className="auth-container">
+      <div className="auth-box">
 
-        <div className="bg-card border border-border rounded-xl p-8 shadow-xl">
-          <div className="flex items-center gap-3 mb-6">
-            <Key className="w-6 h-6 text-primary" />
-            <h2 className="text-xl font-semibold">Acesso Restrito</h2>
-          </div>
+        <h1>Prompt Manager Ultra</h1>
+        <p className="subtitle">Acesso Restrito</p>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Chave de Acesso</label>
-              <Input
-                type="text"
-                value={accessKey}
-                onChange={(e) => setAccessKey(e.target.value.toUpperCase())}
-                placeholder="Digite sua chave de acesso"
-                required
-                className="uppercase"
-              />
-              <p className="text-xs text-muted-foreground mt-2">
-                Entre em contato com o administrador para obter sua chave
-              </p>
-            </div>
-            {error && (
-              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
-                {error}
-              </div>
-            )}
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={loading}
-            >
-              {loading ? 'Verificando...' : 'Acessar Sistema'}
-            </Button>
-          </form>
-        </div>
+        <input
+          type="text"
+          placeholder="Chave de Acesso"
+          value={accessKey}
+          onChange={(e) => setAccessKey(e.target.value.trim())}  // <<< CORRIGIDO
+        />
+
+        {error && <p className="error">{error}</p>}
+
+        <button disabled={loading} onClick={handleLogin}>
+          {loading ? "Verificando..." : "Acessar Sistema"}
+        </button>
+
       </div>
     </div>
-  )
+  );
 }
