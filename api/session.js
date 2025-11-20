@@ -1,4 +1,4 @@
-// /api/session.js
+// /api/session.js - VERSÃO SEM RPC
 
 import { createClient } from '@supabase/supabase-js'
 
@@ -21,29 +21,41 @@ export default async function handler(req, res) {
       return res.status(200).json({
         valid: false,
         logged: false,
-        error: 'Nenhuma sessão ativa'
+        isAdmin: false
       })
     }
 
-    // 🔥 ESTA É A LINHA CORRIGIDA (NÃO MUDEI NADA ALÉM DELA)
-    const { data, error } = await supabase.rpc('validate_admin_session', {
-      session_token: token    //  <<<<<< AQUI! OBRIGATÓRIO TER UNDERSCORE
-    })
+    // ✅ Buscar sessão diretamente na tabela (SEM RPC)
+    const { data: session, error } = await supabase
+      .from('admin_sessions')
+      .select('*')
+      .eq('session_token', token)
+      .gt('expires_at', new Date().toISOString())
+      .single()
 
-    if (error) {
-      console.error('Erro ao validar sessão:', error)
-      return res.status(500).json({ valid: false, error })
+    if (error || !session) {
+      return res.status(200).json({
+        valid: false,
+        logged: false,
+        isAdmin: false
+      })
     }
 
+    // ✅ Sessão válida
     return res.status(200).json({
-      valid: data?.valid || false,
-      logged: data?.valid || false,
-      isAdmin: data?.is_admin || false,
-      expiresAt: data?.expires_at || null,
+      valid: true,
+      logged: true,
+      isAdmin: session.is_admin,
+      expiresAt: session.expires_at
     })
 
   } catch (err) {
     console.error('Erro inesperado no /api/session:', err)
-    return res.status(500).json({ valid: false, error: 'Erro interno no servidor' })
+    return res.status(500).json({ 
+      valid: false, 
+      logged: false,
+      isAdmin: false,
+      error: 'Erro interno no servidor' 
+    })
   }
 }
