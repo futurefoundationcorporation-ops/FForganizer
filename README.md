@@ -22,12 +22,6 @@ VITE_SUPABASE_ANON_KEY=eyJhbG...
 SUPABASE_SERVICE_ROLE_KEY=eyJhbG...
 ```
 
-### 3. Teste com MASTER_KEY
-
-```
-MASTER-KEY-48efbfe2b48bcbdd89198058c653c9d2be3150c1ef05e91bd5036c3b641c310a168e64e89f113462994dfe712d99d2fb
-```
-
 **Ver guia completo**: [QUICK_START.md](./QUICK_START.md)
 
 ---
