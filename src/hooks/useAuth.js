@@ -1,3 +1,4 @@
+// src/hooks/useAuth.js
 import { useState, useEffect } from 'react'
 import { loginWithKey, getSession, logout } from '../utils/authApi'
 import { GHOST_USER_ID } from '../utils/keyValidator'
@@ -16,10 +17,10 @@ export function useAuth() {
       
       const session = await getSession()
       
-      if (session.valid) {
+      if (session && session.valid) {
         setUser({
           id: GHOST_USER_ID,
-          isAdmin: session.isAdmin,
+          isAdmin: !!session.isAdmin,
           expiresAt: session.expiresAt
         })
       } else {
@@ -35,19 +36,36 @@ export function useAuth() {
 
   const signIn = async (accessKey) => {
     try {
+      // tenta logar no backend
       const result = await loginWithKey(accessKey)
-      
-      if (!result.success) {
+
+      // aceita formatos diferentes: { ok: true } ou { success: true }
+      const succeeded = !!(result && (result.ok === true || result.success === true))
+
+      if (!succeeded) {
+        // tenta tirar mensagem de erro em diferentes propriedades
+        const message = result?.error || result?.message || 'Chave de acesso inválida'
         return { 
           data: null, 
-          error: { message: result.error || 'Chave de acesso inválida' } 
+          error: { message } 
+        }
+      }
+
+      // Após login bem-sucedido, confirmar sessão chamando /api/session
+      // (o backend criou um cookie HTTP-only; precisamos checar)
+      const session = await getSession()
+
+      if (!session || !session.valid) {
+        return {
+          data: null,
+          error: { message: 'Falha ao validar sessão após login' }
         }
       }
 
       const userData = {
         id: GHOST_USER_ID,
-        isAdmin: result.isAdmin,
-        expiresAt: result.expiresAt
+        isAdmin: !!session.isAdmin,
+        expiresAt: session.expiresAt
       }
       
       setUser(userData)
