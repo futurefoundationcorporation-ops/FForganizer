@@ -15,7 +15,9 @@ const api = {
   async login(key) {
     const response = await fetch(`${SUPABASE_URL}/login`, {
       method: 'POST',
-      headers: getAuthHeaders(), // CORREÇÃO AQUI
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({ key }),
     });
     const data = await response.json();
@@ -26,16 +28,24 @@ const api = {
   },
 
   async checkSession() {
+    const token = localStorage.getItem('session_token');
+    if (!token) {
+      return { valid: false };
+    }
     const response = await fetch(`${SUPABASE_URL}/session`, {
       method: 'GET',
       headers: getAuthHeaders(),
     });
-    return response.json();
+    const data = await response.json();
+    if (!data.valid) {
+      localStorage.removeItem('session_token');
+    }
+    return data;
   },
 
   async logout() {
-    const headers = getAuthHeaders();
     localStorage.removeItem('session_token');
+    const headers = getAuthHeaders();
     const response = await fetch(`${SUPABASE_URL}/logout`, {
       method: 'POST',
       headers,

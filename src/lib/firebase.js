@@ -1,4 +1,4 @@
-import { initializeApp, getApps } from 'firebase/app'
+import { initializeApp, getApps, getApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
 
@@ -11,13 +11,12 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 }
 
-let app = null
-if (!getApps().length) {
-  app = initializeApp(firebaseConfig)
-}
+// Padrão de inicialização robusto: usa o app existente ou cria um novo.
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-export const auth = getAuth()
-export const db = getFirestore()
+// Exporta os serviços do Firebase associados explicitamente ao nosso app.
+export const auth = getAuth(app);
+export const db = getFirestore(app);
 
 export async function callFunction(path, options = {}) {
   const res = await fetch(`/api/${path}`, {
