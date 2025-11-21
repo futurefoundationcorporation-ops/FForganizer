@@ -2,16 +2,8 @@
 // supabase/functions/login/index.ts
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { corsHeaders } from '../_shared/cors.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
 import crypto from 'https://deno.land/std@0.177.0/node/crypto.ts';
-
-// Função de resposta padronizada para garantir CORS
-function createJsonResponse(body: any, status: number) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
-}
 
 async function validateAccessKey(supabase: any, key: string): Promise<{ valid: boolean; isAdmin: boolean; source?: string; keyId?: string }> {
   const masterKey = Deno.env.get('MASTER_KEY') || '';
@@ -39,6 +31,16 @@ async function validateAccessKey(supabase: any, key: string): Promise<{ valid: b
 }
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req.headers.get('Origin'));
+
+  // Função de resposta padronizada para garantir CORS
+  function createJsonResponse(body: any, status: number) {
+    return new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   // Responde imediatamente a preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -61,7 +63,6 @@ serve(async (req) => {
 
     const result = await validateAccessKey(supabaseClient, key);
     if (!result.valid) {
-      // ALTERAÇÃO AQUI: Retorna 401 com uma mensagem de erro clara
       return createJsonResponse({ success: false, message: 'Chave de acesso inválida ou expirada' }, 401);
     }
 

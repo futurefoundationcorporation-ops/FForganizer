@@ -1,1 +1,0 @@
-import{u as o,r as s}from"./index-KRd9DdMF.js";function c(){const{user:t,loading:a}=o(),[i,n]=s.useState(!1),[r,e]=s.useState(!0);s.useEffect(()=>{u()},[t]);function u(){if(e(!0),!t){n(!1),e(!1);return}n(t.isAdmin===!0),e(!1)}return{isAdmin:i,loading:r||a,user:t,refetch:u}}export{c as u};

@@ -49,6 +49,22 @@ const SimpleView = () => (
     </div>
 );
 
+// Componente Skeleton para simular o carregamento das pastas
+const FolderSkeletonLoader = () => (
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-pulse">
+    {[...Array(6)].map((_, i) => (
+      <div key={i} className="bg-muted p-4 rounded-lg h-32 flex flex-col justify-between">
+        <div className="h-4 bg-muted-foreground/30 rounded w-3/4 mb-2"></div>
+        <div className="h-3 bg-muted-foreground/20 rounded w-1/2"></div>
+        <div className="flex justify-end mt-4">
+          <div className="h-8 w-8 bg-muted-foreground/30 rounded-full"></div>
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+
 export function Dashboard() {
   const { user, signOut } = useAuth()
   const { theme, toggleTheme } = useTheme()
@@ -59,7 +75,7 @@ export function Dashboard() {
     viewMode, 
     setViewMode, 
     allFolders, 
-    loading, 
+    isLoading, 
     selection, 
     selectFolder, 
     selectSubfolder 
@@ -217,7 +233,7 @@ export function Dashboard() {
             </div>
         </div>
 
-        {loading ? <p>Carregando...</p> : renderCurrentView()}
+        {isLoading ? <FolderSkeletonLoader /> : renderCurrentView()}
 
         {selection.subfolderId && (
           <section className="mt-12">
@@ -238,7 +254,7 @@ export function Dashboard() {
                 <PromptCard key={prompt.id} prompt={prompt} />
               ))}
             </div>
-             {prompts.length === 0 && !loading && (
+             {prompts.length === 0 && !isLoading && (
                 <div className="text-center py-12 col-span-full">
                     <FileText className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
                     <p className="text-muted-foreground">Nenhum prompt nesta subpasta.</p>

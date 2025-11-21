@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { db } from '../lib/firebase';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+// Removendo importações diretas do Firebase Firestore
+// import { db } from '../lib/firebase';
+// import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
+import { useQuery } from '@tanstack/react-query';
 
 // O cérebro do nosso sistema de visualização.
 export function useViewManager() {
@@ -9,41 +11,38 @@ export function useViewManager() {
     return localStorage.getItem('viewMode') || 'columns';
   });
 
-  // Estado para armazenar TODAS as pastas, carregadas de uma só vez.
-  const [allFolders, setAllFolders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null); // New state to capture errors
-
   // Estado para a seleção atual do usuário.
   const [selection, setSelection] = useState({
     folderId: null,
     subfolderId: null,
   });
 
-  // Efeito para buscar todos os dados de pastas na montagem.
-  useEffect(() => {
-    console.log("useViewManager: Iniciando fetchAllFolders.");
-    const fetchAllFolders = async () => {
-      try {
-        setLoading(true);
-        setError(null); // Clear previous errors
-        console.log("useViewManager: Consultando coleção 'folders'...");
-        const q = query(collection(db, 'folders'), orderBy('created_at', 'desc'));
-        const snapshot = await getDocs(q);
-        const foldersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        console.log("useViewManager: Pastas carregadas com sucesso:", foldersData);
-        setAllFolders(foldersData);
-      } catch (err) {
-        console.error("useViewManager: Erro ao buscar pastas:", err);
-        setError(err); // Set error state
-      } finally {
-        setLoading(false);
-        console.log("useViewManager: fetchAllFolders finalizado. Loading: ", false);
+  // Função para buscar as pastas do novo endpoint da Supabase Edge Function
+  const fetchFolders = async () => {
+    console.log("useViewManager: Iniciando fetchFolders da Supabase Edge Function.");
+    try {
+      // É CRÍTICO que VITE_SUPABASE_FUNCTIONS_URL esteja configurada no seu ambiente
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/fetch-folders`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    };
+      const foldersData = await response.json();
+      console.log("useViewManager: Pastas carregadas com sucesso da Edge Function:", foldersData);
+      return foldersData;
+    } catch (err) {
+      console.error("useViewManager: Erro ao buscar pastas da Edge Function:", err);
+      throw err; // Re-lança o erro para o React Query lidar
+    }
+  };
 
-    fetchAllFolders();
-  }, []);
+  // Usando useQuery para gerenciar o estado de carregamento, cache e erros
+  const { data: allFolders, isLoading, error } = useQuery({
+    queryKey: ['allFolders'],
+    queryFn: fetchFolders,
+    staleTime: 5 * 60 * 1000, // Dados considerados "frescos" por 5 minutos
+    cacheTime: 10 * 60 * 1000, // Dados permanecem no cache por 10 minutos
+    refetchOnWindowFocus: false, // Pode ser ajustado conforme a necessidade
+  });
 
   // Efeito para salvar a preferência de visualização no localStorage.
   useEffect(() => {
@@ -63,9 +62,9 @@ export function useViewManager() {
   return {
     viewMode,
     setViewMode,
-    allFolders,
-    loading,
-    error, // Expose error state
+    allFolders: allFolders || [], // Garante que seja um array vazio quando undefined/loading
+    isLoading,
+    error,
     selection,
     selectFolder,
     selectSubfolder,

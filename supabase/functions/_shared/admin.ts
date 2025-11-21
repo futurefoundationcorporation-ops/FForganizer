@@ -1,8 +1,9 @@
 // supabase/functions/_shared/admin.ts
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { corsHeaders } from './cors.ts';
+import { getCorsHeaders } from './cors.ts';
 
 export async function requireAdmin(req: Request): Promise<Response | null> {
+  const corsHeaders = getCorsHeaders(req.headers.get('Origin'));
   const authHeader = req.headers.get('Authorization');
   const token = authHeader ? authHeader.replace('Bearer ', '') : null;
 
