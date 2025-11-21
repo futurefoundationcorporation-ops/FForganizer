@@ -1,7 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-// Removendo importações diretas do Firebase Firestore
-// import { db } from '../lib/firebase';
-// import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
 import { useQuery } from '@tanstack/react-query';
 
 // O cérebro do nosso sistema de visualização.
@@ -19,18 +16,27 @@ export function useViewManager() {
 
   // Função para buscar as pastas do novo endpoint da Supabase Edge Function
   const fetchFolders = async () => {
-    console.log("useViewManager: Iniciando fetchFolders da Supabase Edge Function.");
+    const startTime = performance.now();
+    // console.log("useViewManager: Iniciando fetchFolders da Supabase Edge Function.");
     try {
       // É CRÍTICO que VITE_SUPABASE_FUNCTIONS_URL esteja configurada no seu ambiente
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_FUNCTIONS_URL}/fetch-folders`);
+
+      const endTime = performance.now();
+      const latency = endTime - startTime;
+
+      if (latency > 500) {
+        console.warn(`[FRONTEND PERFORMANCE WARNING] fetchFolders demorou ${latency.toFixed(2)}ms`);
+      }
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const foldersData = await response.json();
-      console.log("useViewManager: Pastas carregadas com sucesso da Edge Function:", foldersData);
+      // console.log("useViewManager: Pastas carregadas com sucesso da Edge Function:", foldersData);
       return foldersData;
     } catch (err) {
-      console.error("useViewManager: Erro ao buscar pastas da Edge Function:", err);
+      // console.error("useViewManager: Erro ao buscar pastas da Edge Function:", err);
       throw err; // Re-lança o erro para o React Query lidar
     }
   };
@@ -39,9 +45,12 @@ export function useViewManager() {
   const { data: allFolders, isLoading, error } = useQuery({
     queryKey: ['allFolders'],
     queryFn: fetchFolders,
-    staleTime: 5 * 60 * 1000, // Dados considerados "frescos" por 5 minutos
-    cacheTime: 10 * 60 * 1000, // Dados permanecem no cache por 10 minutos
-    refetchOnWindowFocus: false, // Pode ser ajustado conforme a necessidade
+    staleTime: 60 * 1000, // Dados considerados "frescos" por 1 minuto (SWR)
+    gcTime: 10 * 60 * 1000, // Dados permanecem no cache por 10 minutos (antigo cacheTime)
+    retry: 3, // Tenta 3 vezes antes de falhar
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Backoff exponencial
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
   });
 
   // Efeito para salvar a preferência de visualização no localStorage.
@@ -63,7 +72,7 @@ export function useViewManager() {
     viewMode,
     setViewMode,
     allFolders: allFolders || [], // Garante que seja um array vazio quando undefined/loading
-    isLoading,
+    isLoading, // O loading state será tratado de forma otimista/silenciosa na UI se houver dados em cache
     error,
     selection,
     selectFolder,
