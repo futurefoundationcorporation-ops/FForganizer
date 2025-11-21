@@ -61,7 +61,8 @@ serve(async (req) => {
 
     const result = await validateAccessKey(supabaseClient, key);
     if (!result.valid) {
-      return createJsonResponse({ error: 'Acesso negado' }, 403);
+      // ALTERAÇÃO AQUI: Retorna 401 com uma mensagem de erro clara
+      return createJsonResponse({ success: false, message: 'Chave de acesso inválida ou expirada' }, 401);
     }
 
     const isAdmin = !!result.isAdmin;
